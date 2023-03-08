@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 
+mod backend;
+
 use eframe::egui;
 use eframe::egui::{Pos2, Response, Ui};
 use eframe::egui::plot::PlotPoint;
@@ -50,7 +52,6 @@ impl Default for MyApp {
             square_name_vec : vec![],
             square_rec_vec : vec![],
             square_respone_vec : vec![],
-
         }
     }
 }
