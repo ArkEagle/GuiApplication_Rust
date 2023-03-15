@@ -95,7 +95,7 @@ impl Default for MyApp {
             IOPair_vec : Vec::new(),
             init_connect : false,
             complete_connect : false,
-            LineStart : egui::Pos2{x:0.0,y:0.0},
+            LineStart : egui::Pos2{x:40.0,y:40.0},
             
         }
     }
@@ -130,6 +130,7 @@ impl eframe::App for MyApp {
         //====================Central Panel====================
 
         egui::CentralPanel::default().show(ctx, |ui| {
+
             /*
             if self.click {
                 ui.heading("My egui Application");
@@ -177,6 +178,7 @@ impl eframe::App for MyApp {
             };
             */
             let mut clicked_inframe : bool = false;
+            let mut clicked_IO_b : bool = false;
             for i_state in self.state_vec.iter_mut(){
                 //===========State Painting===========
 
@@ -184,6 +186,7 @@ impl eframe::App for MyApp {
                 i_state.DrawTitle(ui,ctx);
 
                 let i_r = ui.allocate_rect(i_state.frame.rect,egui::Sense::drag());
+
                 //===========State Interaction===========
                 if i_r.clicked() {
                     self.sidebar_enabled = true;
@@ -197,6 +200,20 @@ impl eframe::App for MyApp {
                 }
                 if i_r.clicked_elsewhere() & !clicked_inframe{
                     self.sidebar_enabled = false;
+                    //Reset Connection-Prozess
+                    if !clicked_IO_b {
+                        self.init_connect = false;
+                        self.IOPair[0] = backend::clickedIO {
+                            IOType: backend::IoType::Input,
+                            IO_number: 0,
+                            State: 0,
+                        };
+                        self.IOPair[1] = backend::clickedIO {
+                            IOType: backend::IoType::Input,
+                            IO_number: 0,
+                            State: 0,
+                        };
+                    }
                 }
                 /*
                 if i_r.secondary_clicked(){
@@ -209,40 +226,68 @@ impl eframe::App for MyApp {
                     };
                     ui.text_edit_singleline(&mut self.name);
                 });
+                //=========IO-Drawing und Handling von Verbindungen=========
+                //IOs zeichnen und clicks empfangen
                 self.clickedIO = i_state.Draw_IO(ui);
+                //clicks auswerten
                 match &self.clickedIO {
                     None => {;},
                     Some(click_IO) => {
+                        clicked_IO_b = true;
                         self.init_connect = true;
                         match click_IO.IOType {
                             backend::IoType::Input => self.IOPair[0] = click_IO.clone(),
                             backend::IoType::Output => self.IOPair[1] = click_IO.clone()
                         }
                     }
-                    
                 }
+                //clicks weiterverarbeiten
                 if self.init_connect{
                     ui.label("Connect_Init_erkannt");
                     if (self.IOPair[0].State != 0 as u8 && self.IOPair[1].State == 0 as u8){
                         if i_state.ID == self.IOPair[0].State{
-                            self.LineStart =egui::Pos2{x: i_state.frame.rect.min.x+4.0,y: i_state.frame.rect.min.y as f32*10.0+6.0} ;
+                            self.LineStart =egui::Pos2{x: i_state.frame.rect.min.x+4.0,y: i_state.frame.rect.min.y + self.IOPair[0].IO_number as f32*10.0+6.0} ;
                         }
                         //let IO_Pos = self.state_vec[State_pos];
-                }
+                        }
+                    else if (self.IOPair[0].State == 0 as u8 && self.IOPair[1].State != 0 as u8){
+                        if i_state.ID == self.IOPair[1].State{
+                            self.LineStart =egui::Pos2{x: i_state.frame.rect.max.x-4.0,y: i_state.frame.rect.min.y + self.IOPair[1].IO_number as f32*10.0+6.0} ;
+                        }
+                    }
+                    else if (self.IOPair[0].State != 0 as u8 && self.IOPair[1].State != 0 as u8) {
+                        self.IOPair_vec.push(self.IOPair.clone());
+                        self.IOPair[0] = backend::clickedIO {
+                            IOType: backend::IoType::Input,
+                            IO_number: 0,
+                            State: 0,
+                        };
+                        self.IOPair[1] = backend::clickedIO {
+                            IOType: backend::IoType::Input,
+                            IO_number: 0,
+                            State: 0,
+                        };
+                        self.init_connect = false;
+                        ui.label("connected");
+                    }
+                    //zeichnen der aktuell zu ziehenden Verbindung
                 match ctx.pointer_hover_pos(){
                     None => {},
                     Some(Pos) => {
                         ui.label("Try to draw line");
-                        let Line = egui::epaint::Shape::LineSegment{points:[Pos,self.LineStart],stroke: egui::Stroke{width:2.0,color : egui::Color32::default()}};
+                        let Line = egui::epaint::Shape::LineSegment{points:[Pos,self.LineStart],stroke: egui::Stroke{width:2.0,color : egui::Color32::from_rgb(255, 128, 128)}};
                         ui.painter().add(Line);
                     }
                 }
-                
             }
-            };
+            };//End of Loop
+            //zeichnen von bestehenden Verbindungen
+            //TODO: Verbindung einfügen
+            //löschen von zu löschenden Zuständen
             for i_state in delet_vec {
                 self.state_vec.retain(|x| x != &i_state);
             }
+            //
 
             /* Working Code
             ui.painter().add(self.frame);
@@ -267,7 +312,7 @@ impl eframe::App for MyApp {
 
         //====================Right Sidepanel====================
         if self.sidebar_enabled{
-            egui::SidePanel::right("Propotries").show(ctx,|ui|{
+            egui::SidePanel::right("Properties").show(ctx,|ui|{
                 if ui.button("Test").clicked(){
                     ;
                 }

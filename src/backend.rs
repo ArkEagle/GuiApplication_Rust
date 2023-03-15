@@ -143,7 +143,7 @@ impl State {
         else if  self.frame.rect.max.y-self.frame.rect.min.y < leng_O{
             self.frame.rect.max.y = leng_O;
         }
-        return clicked_IO
+        return clicked_IO;
     }
     pub(crate) fn DrawTitle(&self, ui: &mut egui::Ui,ctx : &egui::Context){
         let TitleRect : egui::Rect  = egui::Rect{
