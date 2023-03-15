@@ -45,6 +45,7 @@ struct MyApp {
     IOPair : [backend::clickedIO;2],
     init_connect : bool,
     complete_connect : bool,
+    LineStart : egui::Pos2,
 }
 
 impl Default for MyApp {
@@ -94,6 +95,7 @@ impl Default for MyApp {
             IOPair_vec : Vec::new(),
             init_connect : false,
             complete_connect : false,
+            LineStart : egui::Pos2{x:0.0,y:0.0},
             
         }
     }
@@ -219,7 +221,24 @@ impl eframe::App for MyApp {
                     }
                     
                 }
-
+                if self.init_connect{
+                    ui.label("Connect_Init_erkannt");
+                    if (self.IOPair[0].State != 0 as u8 && self.IOPair[1].State == 0 as u8){
+                        if i_state.ID == self.IOPair[0].State{
+                            self.LineStart =egui::Pos2{x: i_state.frame.rect.min.x+4.0,y: i_state.frame.rect.min.y as f32*10.0+6.0} ;
+                        }
+                        //let IO_Pos = self.state_vec[State_pos];
+                }
+                match ctx.pointer_hover_pos(){
+                    None => {},
+                    Some(Pos) => {
+                        ui.label("Try to draw line");
+                        let Line = egui::epaint::Shape::LineSegment{points:[Pos,self.LineStart],stroke: egui::Stroke{width:2.0,color : egui::Color32::default()}};
+                        ui.painter().add(Line);
+                    }
+                }
+                
+            }
             };
             for i_state in delet_vec {
                 self.state_vec.retain(|x| x != &i_state);
