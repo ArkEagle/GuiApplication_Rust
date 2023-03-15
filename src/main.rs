@@ -3,6 +3,7 @@
 mod backend;
 
 use std::fmt::format;
+use backend::clickedIO;
 use eframe::egui;
 use eframe::egui::{Pos2, Response, SidePanel, Ui};
 use eframe::egui::plot::PlotPoint;
@@ -40,6 +41,10 @@ struct MyApp {
     clicked_new_state : bool,
     NewState : New_state_input,
     clickedIO : Option<backend::clickedIO>,
+    IOPair_vec : Vec<[backend::clickedIO;2]>,
+    IOPair : [backend::clickedIO;2],
+    init_connect : bool,
+    complete_connect : bool,
 }
 
 impl Default for MyApp {
@@ -85,6 +90,11 @@ impl Default for MyApp {
 
             },
             clickedIO : None,
+            IOPair : [backend::clickedIO{IOType : backend::IoType::Input,IO_number : 0,State : 0},backend::clickedIO{IOType : backend::IoType::Input,IO_number : 0,State : 0}],
+            IOPair_vec : Vec::new(),
+            init_connect : false,
+            complete_connect : false,
+            
         }
     }
 }
@@ -198,35 +208,23 @@ impl eframe::App for MyApp {
                     ui.text_edit_singleline(&mut self.name);
                 });
                 self.clickedIO = i_state.Draw_IO(ui);
+                match &self.clickedIO {
+                    None => {;},
+                    Some(click_IO) => {
+                        self.init_connect = true;
+                        match click_IO.IOType {
+                            backend::IoType::Input => self.IOPair[0] = click_IO.clone(),
+                            backend::IoType::Output => self.IOPair[1] = click_IO.clone()
+                        }
+                    }
+                    
+                }
+
             };
             for i_state in delet_vec {
                 self.state_vec.retain(|x| x != &i_state);
             }
-            match &self.clickedIO {
-                None => {;},
-                Some(backend::clickedIO {IOType,IO_number,State}) =>{
-                    for state in self.state_vec.iter_mut(){
-                        if state.ID == self.clickedIO.as_ref().unwrap().State{
-                            match ctx.pointer_hover_pos(){
-                                None => {;},
-                                Some(egui::Pos2{x,y}) => {
-                                    match self.clickedIO.as_ref().unwrap().IOType {
-                                        backend::IoType::Input => {
-                                            let Line = egui::epaint::Shape::LineSegment {points: [ctx.pointer_hover_pos().unwrap().clone(),egui::Pos2{x: state.IO_anker_template.center.x,y: state.IO_anker_template.center.y + self.clickedIO.as_ref().unwrap().IO_number.clone() as f32*10.0+6.0}],
-                                                stroke : egui::Stroke{width : 2.0, color : egui::Color32::default()}
-                                            };
-                                            ui.painter().add(Line);
-                                        },
-                                        backend::IoType::Output =>{;}
-                                    }
 
-                                }
-                            }
-
-                        }
-                    }
-                }
-            }
             /* Working Code
             ui.painter().add(self.frame);
             let r = ui.allocate_rect(egui::Rect{min: self.frame.rect.min,max: self.frame.rect.max},egui::Sense::drag());

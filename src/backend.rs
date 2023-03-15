@@ -109,7 +109,6 @@ impl State {
                     State : self.ID,
                 });
             }
-
             offset += 1;
             leng_I = offset as f32*10.0+6.0;
         }
@@ -156,7 +155,7 @@ impl State {
 
     }
 }
-
+#[derive(Debug, Clone, PartialEq )]
 pub(crate) struct clickedIO{
     pub(crate) IOType : IoType,
     pub(crate) IO_number : u8,
