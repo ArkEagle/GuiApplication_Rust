@@ -1,8 +1,5 @@
-use std::os::raw::c_float;
-use std::sync::Arc;
 use eframe::egui;
 use eframe::egui::{Galley, Ui};
-use tracing_subscriber::fmt::format;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct State {
@@ -13,7 +10,7 @@ pub(crate) struct State {
     pub(crate) content : String,
     pub(crate) frame : egui::epaint::RectShape,
     pub(crate) IO_anker_template : egui::epaint::CircleShape,
-
+    pub(crate) isStart : bool,
 }
 #[derive(Debug, Clone,PartialEq,)]
 pub(crate) struct IO{
@@ -27,7 +24,7 @@ pub(crate) enum IoType {
 }
 impl State {
 
-    pub(crate) fn new(n_In:usize, n_Out:usize, state_Name:String, Content: String, state_ID:u8) ->Self{
+    pub(crate) fn new(n_In:usize, n_Out:usize, state_Name:String, Content: String, state_ID:u8,Start_state:bool) ->Self{
 
         Self{
             O : IO{
@@ -53,7 +50,7 @@ impl State {
                 fill: egui::Color32::from_rgb(96, 96, 96),
                 stroke:egui::Stroke{width: 1.0,color: egui::Color32::from_rgb(220, 220, 220)
                 }},
-
+            isStart : Start_state,
         }
 
     }
@@ -102,7 +99,7 @@ impl State {
             ui.painter().add(anker);
             let r_a_i = ui.allocate_rect(anker.visual_bounding_rect(),egui::Sense::click_and_drag());
             if r_a_i.clicked(){
-                *i = 2;
+                //*i = 2;
                 clicked_IO = Option::from(clickedIO{
                     IOType : IoType::Input,
                     IO_number : offset,
@@ -124,7 +121,7 @@ impl State {
             ui.painter().add(anker);
             let r_a_o = ui.allocate_rect(anker.visual_bounding_rect(),egui::Sense::click_and_drag());
             if r_a_o.clicked(){
-                *o = 2;
+                //*o = 2;
                 clicked_IO = Option::from(clickedIO{
                     IOType : IoType::Output,
                     IO_number : offset,
@@ -151,6 +148,10 @@ impl State {
             max : egui::Pos2{x:self.frame.rect.max.x-6.0, y:self.frame.rect.min.y+26.0}
         };
         let mut TitleText : egui::widgets::Label = egui::widgets::Label::new(egui::RichText::from(self.Name.clone()).size(12.0));
+        if self.isStart{ 
+            TitleText = egui::widgets::Label::new(egui::RichText::from(String::from("STARTSTATE \n")+&self.Name.clone()).size(12.0));
+        }
+
         ui.put(TitleRect,TitleText);
 
     }

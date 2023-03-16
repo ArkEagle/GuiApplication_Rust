@@ -2,8 +2,7 @@
 
 mod backend;
 
-use std::fmt::format;
-use backend::clickedIO;
+use backend::{clickedIO, State};
 use eframe::egui;
 use eframe::egui::{Pos2, Response, SidePanel, Ui};
 use eframe::egui::plot::PlotPoint;
@@ -46,6 +45,8 @@ struct MyApp {
     init_connect : bool,
     complete_connect : bool,
     LineStart : egui::Pos2,
+    io_draw_template : egui::epaint::CircleShape,
+    start_state_exists : bool,
 }
 
 impl Default for MyApp {
@@ -68,7 +69,7 @@ impl Default for MyApp {
             state_vec : vec![],
             sidebar_enabled : false,
             n_state : 0,
-            init_state : backend::State::new(5, 2, "".parse().unwrap(), "".parse().unwrap(), 0),/*backend::State {
+            init_state : backend::State::new(5, 2, "".parse().unwrap(), "".parse().unwrap(), 0,false),/*backend::State {
                 I: backend::IO { Type: backend::IoType::Input, IOVec: Vec::with_capacity(0) },
                 O: backend::IO { Type: backend::IoType::Input, IOVec: Vec::with_capacity(0) },
                 Name : ("").parse().unwrap(),
@@ -84,10 +85,11 @@ impl Default for MyApp {
             }*/
             clicked_new_state : false,
             NewState : New_state_input{
-                n_Input : 0,
-                n_Output : 0,
+                n_Input : 1,
+                n_Output : 1,
                 title : "".parse().unwrap(),
                 content : "".parse().unwrap(),
+                is_start_state : false,
 
             },
             clickedIO : None,
@@ -96,6 +98,13 @@ impl Default for MyApp {
             init_connect : false,
             complete_connect : false,
             LineStart : egui::Pos2{x:40.0,y:40.0},
+            io_draw_template : egui::epaint::CircleShape{
+                center: egui::Pos2{x:44.0, y :46.0},
+                radius:3.0,
+                fill: egui::Color32::from_rgb(96, 96, 96),
+                stroke:egui::Stroke{width: 1.0,color: egui::Color32::from_rgb(220, 220, 220)
+                }},
+            start_state_exists : false,
             
         }
     }
@@ -111,18 +120,16 @@ impl eframe::App for MyApp {
         //====================Top Panel====================
         egui::TopBottomPanel::top("Testpanel").show(ctx, |ui|{
             ui.horizontal(|ui|{
+                if self.init_connect{
+                    ui.label("Verlassen des Verbindungsmodus ESC");
+                }
                 if ui.button("Generate Square").clicked() {
                     self.n_state += 1;
                     let mut state = self.init_state.clone();
-                    state.ID = self.n_state;
-                    //self.square_rec_vec.push(self.frame);
-                    self.state_vec.push(state);
-
+                    self.clicked_new_state = true;
                 }
                 if ui.button("Testbutton Window").clicked(){
-                    self.n_state += 1;
-                    let mut state = self.init_state.clone();
-                    self.clicked_new_state = true;
+                    ui.label("Aktuell keine Funktion");
                 }
 
             });
@@ -178,7 +185,7 @@ impl eframe::App for MyApp {
             };
             */
             let mut clicked_inframe : bool = false;
-            let mut clicked_IO_b : bool = false;
+            let mut clicked_io_b : bool = false;
             for i_state in self.state_vec.iter_mut(){
                 //===========State Painting===========
 
@@ -186,7 +193,23 @@ impl eframe::App for MyApp {
                 i_state.DrawTitle(ui,ctx);
 
                 let i_r = ui.allocate_rect(i_state.frame.rect,egui::Sense::drag());
-
+                
+                self.clickedIO = i_state.Draw_IO(ui);
+                //clicks auswerten
+                match &self.clickedIO {
+                    None => {;},
+                    Some(click_IO) => {
+                        clicked_io_b = true;
+                        self.init_connect = true;
+                        match click_IO.IOType {
+                            backend::IoType::Input => self.IOPair[0] = click_IO.clone(),
+                            backend::IoType::Output => self.IOPair[1] = click_IO.clone()
+                        }
+                    }
+                }
+                if clicked_io_b{
+                    ui.label("Click registiert!");
+                }
                 //===========State Interaction===========
                 if i_r.clicked() {
                     self.sidebar_enabled = true;
@@ -200,9 +223,18 @@ impl eframe::App for MyApp {
                 }
                 if i_r.clicked_elsewhere() & !clicked_inframe{
                     self.sidebar_enabled = false;
+
+                }
+                i_r.context_menu(|ui|{
+                    if ui.button("Delete").clicked(){
+                        delet_vec.push(i_state.clone());
+                        ui.close_menu();
+                    };
+                    ui.text_edit_singleline(&mut self.name);
+                });
+                if ui.input(|i|i.key_pressed(egui::Key::Escape)){
+                    self.init_connect = false;
                     //Reset Connection-Prozess
-                    if !clicked_IO_b {
-                        self.init_connect = false;
                         self.IOPair[0] = backend::clickedIO {
                             IOType: backend::IoType::Input,
                             IO_number: 0,
@@ -213,37 +245,12 @@ impl eframe::App for MyApp {
                             IO_number: 0,
                             State: 0,
                         };
-                    }
                 }
-                /*
-                if i_r.secondary_clicked(){
-                    delet_vec.push(*i_frame)
-                }*/
-                i_r.context_menu(|ui|{
-                    if ui.button("Delete").clicked(){
-                        delet_vec.push(i_state.clone());
-                        ui.close_menu();
-                    };
-                    ui.text_edit_singleline(&mut self.name);
-                });
                 //=========IO-Drawing und Handling von Verbindungen=========
                 //IOs zeichnen und clicks empfangen
-                self.clickedIO = i_state.Draw_IO(ui);
-                //clicks auswerten
-                match &self.clickedIO {
-                    None => {;},
-                    Some(click_IO) => {
-                        clicked_IO_b = true;
-                        self.init_connect = true;
-                        match click_IO.IOType {
-                            backend::IoType::Input => self.IOPair[0] = click_IO.clone(),
-                            backend::IoType::Output => self.IOPair[1] = click_IO.clone()
-                        }
-                    }
-                }
+                
                 //clicks weiterverarbeiten
                 if self.init_connect{
-                    ui.label("Connect_Init_erkannt");
                     if (self.IOPair[0].State != 0 as u8 && self.IOPair[1].State == 0 as u8){
                         if i_state.ID == self.IOPair[0].State{
                             self.LineStart =egui::Pos2{x: i_state.frame.rect.min.x+4.0,y: i_state.frame.rect.min.y + self.IOPair[0].IO_number as f32*10.0+6.0} ;
@@ -256,7 +263,14 @@ impl eframe::App for MyApp {
                         }
                     }
                     else if (self.IOPair[0].State != 0 as u8 && self.IOPair[1].State != 0 as u8) {
-                        self.IOPair_vec.push(self.IOPair.clone());
+                        if self.IOPair_vec.contains(&self.IOPair){
+
+                            self.IOPair_vec.retain(|x| x != &self.IOPair);
+                        }
+                        else {
+                            self.IOPair_vec.push(self.IOPair.clone());
+                        }
+                        
                         self.IOPair[0] = backend::clickedIO {
                             IOType: backend::IoType::Input,
                             IO_number: 0,
@@ -268,23 +282,33 @@ impl eframe::App for MyApp {
                             State: 0,
                         };
                         self.init_connect = false;
-                        ui.label("connected");
                     }
                     //zeichnen der aktuell zu ziehenden Verbindung
                 match ctx.pointer_hover_pos(){
                     None => {},
                     Some(Pos) => {
-                        ui.label("Try to draw line");
                         let Line = egui::epaint::Shape::LineSegment{points:[Pos,self.LineStart],stroke: egui::Stroke{width:2.0,color : egui::Color32::from_rgb(255, 128, 128)}};
                         ui.painter().add(Line);
                     }
                 }
             }
             };//End of Loop
+                ui.label(format!("N-Connection: {}",self.IOPair_vec.len()));
             //zeichnen von bestehenden Verbindungen
-            //TODO: Verbindung einfügen
+            for connection in &self.IOPair_vec{
+                let index_input = self.state_vec.iter().position(|input_state| input_state.ID == connection[0].State  ).unwrap();
+                let index_output = self.state_vec.iter().position(|output_state| output_state.ID == connection[1].State  ).unwrap();
+                let Pos_input = Pos2{x: self.state_vec[index_input].frame.rect.min.x+4.0,y:self.state_vec[index_input].frame.rect.min.y+connection[0].IO_number as f32*10.0+6.0};
+                let Pos_output = Pos2{x: self.state_vec[index_output].frame.rect.max.x-4.0,y:self.state_vec[index_output].frame.rect.min.y+connection[1].IO_number as f32*10.0+6.0};
+                let line = egui::epaint::Shape::LineSegment { points: [Pos_input,Pos_output], stroke: egui::Stroke{width : 2.0, color : egui::Color32::from_rgb(220, 220, 220)} };
+                ui.painter().add(line);
+            }   
             //löschen von zu löschenden Zuständen
             for i_state in delet_vec {
+                if i_state.isStart{
+                    self.start_state_exists = false;
+                }
+                self.IOPair_vec.retain(|x| x[0].State !=i_state.ID && x[1].State !=i_state.ID);
                 self.state_vec.retain(|x| x != &i_state);
             }
             //
@@ -309,7 +333,6 @@ impl eframe::App for MyApp {
                 egui::Stroke::NONE
             )*/
         });
-
         //====================Right Sidepanel====================
         if self.sidebar_enabled{
             egui::SidePanel::right("Properties").show(ctx,|ui|{
@@ -318,7 +341,17 @@ impl eframe::App for MyApp {
                 }
             });
         }
-
+        //====================Bottom Sidepanel====================
+        egui::TopBottomPanel::bottom("Meldungspanel").show(ctx, |ui|{
+            ui.horizontal(|ui|{
+                ui.heading("Statusmeldungen");
+                ui.separator();
+                if !self.start_state_exists{
+                    ui.label(egui::RichText::from("Startstate fehlt").size(12.0).color(egui::epaint::Color32::from_rgb(170, 0, 0)));
+                }
+            }
+            )
+        });
     }
 }
 
@@ -331,8 +364,19 @@ impl MyApp {
                     ui.label("Zustandsname: ");
                     ui.text_edit_singleline(&mut self.NewState.title);
                 });
-                ui.add(egui::Slider::new(&mut self.NewState.n_Input, 0..=10).text("Anzahl der Inputs"));
-                ui.add(egui::Slider::new(&mut self.NewState.n_Output, 0..=10).text("Anzahl der Outputs"));
+                ui.add_enabled(!self.start_state_exists, egui::Checkbox::new(&mut self.NewState.is_start_state, "Soll als Start festgelegt werden"));
+                if self.start_state_exists{
+                    ui.label("Startzusand wurde bereits festgelegt.").on_hover_text("Sie haben bereits den Startzustand vergeben. \n Sie erkennen ihn an dem Highlight. \n Löschen sie den aktuellen Startzustand, um einen neuen Startzustand vergeben zu können.");
+                }
+                if self.NewState.is_start_state {
+                    ui.add(egui::Slider::new(&mut self.NewState.n_Input, 0..=10).text("Anzahl der Inputs. Minimum 0!"));
+
+                }
+                else{
+                    ui.add(egui::Slider::new(&mut self.NewState.n_Input, 1..=10).text("Anzahl der Inputs"));
+                }
+                
+                ui.add(egui::Slider::new(&mut self.NewState.n_Output, 1..=10).text("Anzahl der Outputs"));
                 ui.label("Zustandsinhalt: ");
                 ui.text_edit_multiline(&mut self.NewState.content).on_hover_text("Hier durchzuführende Funktionen angeben");
                 ui.horizontal(|ui|{
@@ -341,13 +385,17 @@ impl MyApp {
                         self.n_state -=1;
                     };
                     if ui.button("Create State").clicked(){
-                        let state : backend::State = backend::State::new(self.NewState.n_Input,self.NewState.n_Output,self.NewState.title.clone(),self.NewState.content.clone(),self.n_state);
+                        if self.NewState.is_start_state{
+                            self.start_state_exists = true;
+                        }
+                        let state : backend::State = backend::State::new(self.NewState.n_Input,self.NewState.n_Output,self.NewState.title.clone(),self.NewState.content.clone(),self.n_state,self.NewState.is_start_state);
                         self.state_vec.push(state);
                         self.NewState = New_state_input{
-                            n_Input : 0,
-                            n_Output : 0,
+                            n_Input : 1,
+                            n_Output : 1,
                             title : "".parse().unwrap(),
                             content : "".parse().unwrap(),
+                            is_start_state : false,
                         };
                         self.clicked_new_state =false;
                     };
@@ -356,13 +404,15 @@ impl MyApp {
             });
 
 
-        });
-    }
+        });}
+        
 }
+
 
 struct New_state_input{
     n_Input : usize,
     n_Output : usize,
     title : String,
     content : String,
+    is_start_state : bool, 
 }
