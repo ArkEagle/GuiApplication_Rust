@@ -113,7 +113,7 @@ impl State {
         }
         //==============Drawing Outputs==============
         offset = 0;
-        for o in self.O.IOVec.iter_mut(){
+        for (n,o) in self.O.IOVec.iter_mut().enumerate(){
             let mut anker = self.IO_anker_template.clone();
             if *o != 0 as u8 {
                 anker.fill = egui::Color32::from_rgb(255, 255, 255);
@@ -130,6 +130,7 @@ impl State {
                     State : self.ID,
                 });
             }
+            r_a_o.on_hover_text(&self.O_con_vec[n]);
 
 
             offset += 1;

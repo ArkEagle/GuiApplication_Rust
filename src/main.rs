@@ -123,6 +123,10 @@ impl eframe::App for MyApp {
             self.newState(ctx);
 
         }
+        if self.set_ouput_con{
+            
+            self.setOutputCondition(ctx);
+        }
         //====================Top Panel====================
         egui::TopBottomPanel::top("CreatePanel").show(ctx, |ui|{
             ui.horizontal(|ui|{
@@ -229,7 +233,7 @@ impl eframe::App for MyApp {
                     i_state.IO_anker_template.center = Pos2{x: i_state.IO_anker_template.center.x+delta[0], y: i_state.IO_anker_template.center.y+delta[1]}
                 }
                 if i_r.clicked_elsewhere() & !clicked_inframe{
-                    self.sidebar_enabled = false;
+                    //self.selected_state = None;
 
                 }
                 i_r.context_menu(|ui|{
@@ -341,14 +345,11 @@ impl eframe::App for MyApp {
             )*/
         });
         //====================Right Sidepanel====================
-        if self.sidebar_enabled{
-            egui::SidePanel::right("Properties").show(ctx,|ui|{
-                if ui.button("Test").clicked(){
-                    ;
-                }
-            });
+        match &mut self.selected_state{
+            None => {},
+            Some(state) => self.SidepanelStateConfig(ctx)
         }
-        //====================Bottom Sidepanel====================
+        //====================Bottompanel====================
         egui::TopBottomPanel::bottom("Meldungspanel").show(ctx, |ui|{
             ui.horizontal(|ui|{
                 ui.heading("Statusmeldungen");
@@ -359,9 +360,6 @@ impl eframe::App for MyApp {
             }
             )
         });
-        if self.set_ouput_con{
-            self.setOutputCondition(ctx);
-        }
     }
 }
 
@@ -400,6 +398,7 @@ impl MyApp {
                             self.start_state_exists = true;
                         }
                         let state : backend::State = backend::State::new(self.NewState.n_Input,self.NewState.n_Output,self.NewState.title.clone(),self.NewState.content.clone(),self.n_state,self.NewState.is_start_state);
+                        self.selected_state = Some(state.clone());
                         self.state_vec.push(state);
                         self.NewState = New_state_input{
                             n_Input : 1,
@@ -436,8 +435,11 @@ impl MyApp {
                     self.set_ouput_con = false;
                 }
                 else if ui.button("Transitionen bestätigen").clicked(){
-                    self.state_vec.iter_mut().for_each(f)
+                    for filtered_state in self.state_vec.iter_mut().filter(|state_in_vec| state_in_vec.ID==state.ID){
+                        filtered_state.O_con_vec = state.O_con_vec.clone();
+                    }
                     self.set_ouput_con = false;
+
                 }
             });
             
@@ -445,6 +447,39 @@ impl MyApp {
     }}
         
     } 
+    fn SidepanelStateConfig(&mut self, ctx: &egui::Context){
+        //TODO: Mit Hilfsvariable self.changedState des typs newState arbeiten
+        egui::SidePanel::right("Properties").show(ctx,|ui|{
+            let mut n_IN = self.selected_state.as_ref().unwrap().I.IOVec.len();
+            let mut n_OUT = self.selected_state.as_ref().unwrap().O.IOVec.len();
+            ui.vertical(|ui|{
+                ui.vertical(|ui| {
+                    ui.label(format!("Zustands-ID: {}",self.selected_state.as_ref().unwrap().ID));
+                    ui.vertical(|ui|{
+                        ui.label(format!("Zustandsname: {}",self.selected_state.as_ref().unwrap().Name));
+                        ui.text_edit_singleline(&mut self.NewState.title);
+                    });
+                    ui.add_enabled(!self.start_state_exists, egui::Checkbox::new( &mut self.selected_state.as_mut().unwrap().isStart, "Soll als Start festgelegt werden"));
+                    if self.start_state_exists{
+                        ui.label("Startzusand wurde bereits festgelegt.").on_hover_text("Sie haben bereits den Startzustand vergeben. \n Sie erkennen ihn an dem Highlight. \n Löschen sie den aktuellen Startzustand, um einen neuen Startzustand vergeben zu können.");
+                    }
+                    if self.NewState.is_start_state {
+                        ui.add(egui::Slider::new(&mut n_IN, 0..=10).text("Anzahl der Inputs. Minimum 0!"));
+    
+                    }
+                    else{
+                        ui.add(egui::Slider::new(&mut n_IN, 1..=10).text("Anzahl der Inputs"));
+                    }
+                    
+                    ui.add(egui::Slider::new(&mut n_OUT, 1..=10).text("Anzahl der Outputs"));
+                    
+                    ui.label("Zustandsinhalt: ");
+                    ui.text_edit_multiline(&mut self.NewState.content).on_hover_text("Zustandsablauf");
+            });
+            
+        });
+    });
+}
 }
 
 
