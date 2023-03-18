@@ -47,6 +47,7 @@ struct MyApp {
     LineStart : egui::Pos2,
     io_draw_template : egui::epaint::CircleShape,
     start_state_exists : bool,
+    selected_state : Option<backend::State>
 }
 
 impl Default for MyApp {
@@ -90,6 +91,7 @@ impl Default for MyApp {
                 title : "".parse().unwrap(),
                 content : "".parse().unwrap(),
                 is_start_state : false,
+                ConVec : vec![String::from("");1]
 
             },
             clickedIO : None,
@@ -105,6 +107,7 @@ impl Default for MyApp {
                 stroke:egui::Stroke{width: 1.0,color: egui::Color32::from_rgb(220, 220, 220)
                 }},
             start_state_exists : false,
+            selected_state : None,
             
         }
     }
@@ -118,7 +121,7 @@ impl eframe::App for MyApp {
 
         }
         //====================Top Panel====================
-        egui::TopBottomPanel::top("Testpanel").show(ctx, |ui|{
+        egui::TopBottomPanel::top("CreatePanel").show(ctx, |ui|{
             ui.horizontal(|ui|{
                 if self.init_connect{
                     ui.label("Verlassen des Verbindungsmodus ESC");
@@ -214,6 +217,7 @@ impl eframe::App for MyApp {
                 if i_r.clicked() {
                     self.sidebar_enabled = true;
                     clicked_inframe = true;
+                    self.selected_state = Some(i_state.clone());
                 }
                 if i_r.dragged(){
                     let delta = i_r.drag_delta();
@@ -377,6 +381,7 @@ impl MyApp {
                 }
                 
                 ui.add(egui::Slider::new(&mut self.NewState.n_Output, 1..=10).text("Anzahl der Outputs"));
+                
                 ui.label("Zustandsinhalt: ");
                 ui.text_edit_multiline(&mut self.NewState.content).on_hover_text("Hier durchzuführende Funktionen angeben");
                 ui.horizontal(|ui|{
@@ -396,6 +401,7 @@ impl MyApp {
                             title : "".parse().unwrap(),
                             content : "".parse().unwrap(),
                             is_start_state : false,
+                            ConVec : vec![String::from("");1],
                         };
                         self.clicked_new_state =false;
                     };
@@ -414,5 +420,6 @@ struct New_state_input{
     n_Output : usize,
     title : String,
     content : String,
-    is_start_state : bool, 
+    is_start_state : bool,
+    ConVec : Vec<String>
 }

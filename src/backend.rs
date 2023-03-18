@@ -5,6 +5,7 @@ use eframe::egui::{Galley, Ui};
 pub(crate) struct State {
     pub(crate) I : IO,
     pub(crate) O : IO,
+    pub(crate) O_con_vec : Vec<String>,
     pub(crate) Name :  String,
     pub(crate) ID : u8,
     pub(crate) content : String,
@@ -51,6 +52,7 @@ impl State {
                 stroke:egui::Stroke{width: 1.0,color: egui::Color32::from_rgb(220, 220, 220)
                 }},
             isStart : Start_state,
+            O_con_vec : vec![String::from("");n_Out],
         }
 
     }
