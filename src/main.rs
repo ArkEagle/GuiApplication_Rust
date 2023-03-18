@@ -47,7 +47,9 @@ struct MyApp {
     LineStart : egui::Pos2,
     io_draw_template : egui::epaint::CircleShape,
     start_state_exists : bool,
-    selected_state : Option<backend::State>
+    selected_state : Option<backend::State>,
+    selected_state_Output_Con : Vec<String>,
+    set_ouput_con : bool,
 }
 
 impl Default for MyApp {
@@ -108,7 +110,8 @@ impl Default for MyApp {
                 }},
             start_state_exists : false,
             selected_state : None,
-            
+            selected_state_Output_Con : Vec::new(),
+            set_ouput_con : false,
         }
     }
 }
@@ -356,6 +359,9 @@ impl eframe::App for MyApp {
             }
             )
         });
+        if self.set_ouput_con{
+            self.setOutputCondition(ctx);
+        }
     }
 }
 
@@ -404,6 +410,7 @@ impl MyApp {
                             ConVec : vec![String::from("");1],
                         };
                         self.clicked_new_state =false;
+                        self.set_ouput_con = true;
                     };
 
                 });
@@ -411,7 +418,33 @@ impl MyApp {
 
 
         });}
+    fn setOutputCondition(&mut self, ctx :&egui::Context){
+        match &mut self.selected_state {
+            None => {},
+            Some(state) => {
+                egui::Window::new("Setzen der Transitionsbedingungen").show(ctx,|ui|{
+                    ui.vertical(|ui|{
+                        for (n,OutCond) in state.O_con_vec.iter_mut().enumerate(){
+                            ui.horizontal(|ui|{
+                                ui.label(format!("Transitionsbedingung für Transition {}",n+1));
+                                ui.text_edit_singleline(OutCond);
+                            });
+                        }
+                    });
+            ui.horizontal(|ui| {
+                if ui.button("Exit").clicked(){
+                    self.set_ouput_con = false;
+                }
+                else if ui.button("Transitionen bestätigen").clicked(){
+                    self.state_vec.iter_mut().for_each(f)
+                    self.set_ouput_con = false;
+                }
+            });
+            
+        });
+    }}
         
+    } 
 }
 
 
