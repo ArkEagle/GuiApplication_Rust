@@ -207,6 +207,16 @@ impl eframe::App for MyApp {
             for i_state in self.state_vec.iter_mut(){
                 //===========State Painting===========
 
+                match &self.selected_state {
+                    None => {},
+                    Some(state) => {
+                        let mut highlight = i_state.frame.clone();
+                        highlight.fill = egui::Color32::from_rgba_premultiplied(0, 0, 0, 0);
+                        highlight.stroke = egui::epaint::Stroke{ width: 2.0, color: egui::Color32::from_rgb(220, 220, 220) };
+                        ui.painter().add(highlight);
+                    }
+                }
+
                 ui.painter().add(i_state.frame);
                 i_state.DrawTitle(ui,ctx);
 
@@ -266,8 +276,6 @@ impl eframe::App for MyApp {
                         };
                 }
                 //=========IO-Drawing und Handling von Verbindungen=========
-                //IOs zeichnen und clicks empfangen
-                
                 //clicks weiterverarbeiten
                 if self.init_connect{
                     if (self.IOPair[0].State != 0 as u8 && self.IOPair[1].State == 0 as u8){
@@ -355,11 +363,13 @@ impl eframe::App for MyApp {
         //====================Right Sidepanel====================
         match &mut self.selected_state{
             None => {},
-            Some(state) => self.SidepanelStateConfig(ctx)
+            Some(state) =>{
+                self.SidepanelStateConfig(ctx);
+            }
         }
         //====================Bottompanel====================
         egui::TopBottomPanel::bottom("Meldungspanel").show(ctx, |ui|{
-            ui.horizontal(|ui|{
+            ui.vertical(|ui|{
                 ui.heading("Statusmeldungen");
                 ui.separator();
                 if !self.start_state_exists{
