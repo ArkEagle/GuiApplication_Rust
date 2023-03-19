@@ -210,18 +210,19 @@ impl eframe::App for MyApp {
                 match &self.selected_state {
                     None => {},
                     Some(state) => {
-                        let mut highlight = i_state.frame.clone();
-                        highlight.fill = egui::Color32::from_rgba_premultiplied(0, 0, 0, 0);
-                        highlight.stroke = egui::epaint::Stroke{ width: 2.0, color: egui::Color32::from_rgb(220, 220, 220) };
-                        ui.painter().add(highlight);
+                        if state.ID == i_state.ID {
+                            let mut highlight = i_state.frame.clone();
+                            highlight.fill = egui::Color32::from_rgba_premultiplied(0, 0, 0, 0);
+                            highlight.stroke = egui::epaint::Stroke{ width: 2.0, color: egui::Color32::from_rgb(220, 220, 220) };
+                            ui.painter().add(highlight);
+                        }
                     }
                 }
 
                 ui.painter().add(i_state.frame);
-                i_state.DrawTitle(ui,ctx);
-
+                i_state.DrawTitle(ui);
+                i_state.DrawContent(ui);
                 let i_r = ui.allocate_rect(i_state.frame.rect,egui::Sense::drag());
-                
                 self.clickedIO = i_state.Draw_IO(ui);
                 //clicks auswerten
                 match &self.clickedIO {

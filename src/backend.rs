@@ -1,5 +1,5 @@
 use eframe::egui;
-use eframe::egui::{Galley, Ui};
+use eframe::egui::{Align, Galley, Ui};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct State {
@@ -40,7 +40,7 @@ impl State {
             ID : state_ID,
             content : Content,
             frame : egui::epaint::RectShape{
-                rect: egui::Rect{min: egui::Pos2 { x:40.0, y :40.0 },max: egui::Pos2{ x:100.0, y :200.0 }},
+                rect: egui::Rect{min: egui::Pos2 { x:40.0, y :40.0 },max: egui::Pos2{ x:300.0, y :200.0 }},
                 rounding: egui::Rounding{nw:0.2,ne:0.2,sw:0.2,se:0.2},
                 fill: egui::Color32::from_rgb(96, 96, 96),
                 stroke: egui::Stroke::NONE
@@ -85,7 +85,7 @@ impl State {
             }
         }
     }
-    /// Output ungleich None, wenn ein IO gedrückt wurde: (IO-Typ,IO-Number State-ID)
+    /// Output ungleich None, wenn ein IO gedrückt wurde
     pub(crate) fn Draw_IO(&mut self, ui: &mut egui::Ui) -> Option<clickedIO>{
         let mut clicked_IO = None;
         let mut leng_I : f32 = 0.0;
@@ -145,7 +145,7 @@ impl State {
         }
         return clicked_IO;
     }
-    pub(crate) fn DrawTitle(&self, ui: &mut egui::Ui,ctx : &egui::Context){
+    pub(crate) fn DrawTitle(&self, ui: &mut egui::Ui){
         let TitleRect : egui::Rect  = egui::Rect{
             min : egui::Pos2{x:self.frame.rect.min.x+6.0, y:self.frame.rect.min.y+6.0},
             max : egui::Pos2{x:self.frame.rect.max.x-6.0, y:self.frame.rect.min.y+26.0}
@@ -157,6 +157,16 @@ impl State {
 
         ui.put(TitleRect,TitleText);
 
+    }
+    pub(crate) fn DrawContent(&mut self, ui : &mut egui::Ui) {
+        let ContentRect : egui::Rect  = egui::Rect{
+            min : egui::Pos2{x:self.frame.rect.min.x+15.0, y:self.frame.rect.min.y+30.0},
+            max : egui::Pos2{x:self.frame.rect.max.x-15.0, y:self.frame.rect.max.y-5.0}};
+        let ContentText = egui::widgets::TextEdit::multiline(&mut self.content)
+            .interactive(false)
+            .code_editor()
+            .;
+        ui.put(ContentRect,ContentText);
     }
     pub(crate) fn refactorState(&mut self,n_In:usize, n_Out:usize, state_Name:String, Content: String,Start_state:bool){
         self.O.IOVec = vec![0;n_Out];
