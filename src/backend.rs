@@ -158,6 +158,14 @@ impl State {
         ui.put(TitleRect,TitleText);
 
     }
+    pub(crate) fn refactorState(&mut self,n_In:usize, n_Out:usize, state_Name:String, Content: String,Start_state:bool){
+        self.O.IOVec = vec![0;n_Out];
+        self.I.IOVec = vec![0;n_In];
+        self.Name = state_Name;
+        self.content = Content;
+        self.isStart = Start_state;
+        self.O_con_vec = vec![String::from("");n_Out];
+    }
 }
 #[derive(Debug, Clone, PartialEq )]
 pub(crate) struct clickedIO{

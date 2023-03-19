@@ -50,6 +50,7 @@ struct MyApp {
     selected_state : Option<backend::State>,
     selected_state_Output_Con : Vec<String>,
     set_ouput_con : bool,
+    ChangedState : New_state_input,
 }
 
 impl Default for MyApp {
@@ -112,6 +113,13 @@ impl Default for MyApp {
             selected_state : None,
             selected_state_Output_Con : Vec::new(),
             set_ouput_con : false,
+            ChangedState : New_state_input{
+                n_Input : 1,
+                n_Output : 1,
+                title : "".parse().unwrap(),
+                content : "".parse().unwrap(),
+                is_start_state : false,
+                ConVec : vec![String::from("");1]}
         }
     }
 }
@@ -369,7 +377,7 @@ impl MyApp {
             ui.vertical(|ui| {
                 ui.label(format!("Zustands-ID: {}",self.n_state));
                 ui.horizontal(|ui|{
-                    ui.label("Zustandsname: ");
+                    ui.label(format!("Zustandsname: "));
                     ui.text_edit_singleline(&mut self.NewState.title);
                 });
                 ui.add_enabled(!self.start_state_exists, egui::Checkbox::new(&mut self.NewState.is_start_state, "Soll als Start festgelegt werden"));
@@ -450,34 +458,77 @@ impl MyApp {
     fn SidepanelStateConfig(&mut self, ctx: &egui::Context){
         //TODO: Mit Hilfsvariable self.changedState des typs newState arbeiten
         egui::SidePanel::right("Properties").show(ctx,|ui|{
-            let mut n_IN = self.selected_state.as_ref().unwrap().I.IOVec.len();
-            let mut n_OUT = self.selected_state.as_ref().unwrap().O.IOVec.len();
-            ui.vertical(|ui|{
+            //self.ChangedState.n_Input = self.selected_state.as_ref().unwrap().I.IOVec.len();
+            //self.ChangedState.n_Output = self.selected_state.as_ref().unwrap().O.IOVec.len();
                 ui.vertical(|ui| {
                     ui.label(format!("Zustands-ID: {}",self.selected_state.as_ref().unwrap().ID));
                     ui.vertical(|ui|{
                         ui.label(format!("Zustandsname: {}",self.selected_state.as_ref().unwrap().Name));
-                        ui.text_edit_singleline(&mut self.NewState.title);
+                        ui.text_edit_singleline(&mut self.ChangedState.title);
                     });
-                    ui.add_enabled(!self.start_state_exists, egui::Checkbox::new( &mut self.selected_state.as_mut().unwrap().isStart, "Soll als Start festgelegt werden"));
+                    /* TODO: Lösung suchen
+                    ui.add_enabled(!self.start_state_exists, egui::Checkbox::new( &mut self.ChangedState.is_start_state, "Soll als Start festgelegt werden"));
+                    */
                     if self.start_state_exists{
                         ui.label("Startzusand wurde bereits festgelegt.").on_hover_text("Sie haben bereits den Startzustand vergeben. \n Sie erkennen ihn an dem Highlight. \n Löschen sie den aktuellen Startzustand, um einen neuen Startzustand vergeben zu können.");
                     }
-                    if self.NewState.is_start_state {
-                        ui.add(egui::Slider::new(&mut n_IN, 0..=10).text("Anzahl der Inputs. Minimum 0!"));
+
+                    if self.ChangedState.is_start_state  || self.selected_state.as_ref().unwrap().isStart{
+                        ui.add(egui::Slider::new(&mut self.ChangedState.n_Input, 0..=10).text("Anzahl der Inputs. Minimum 0!"));
     
                     }
                     else{
-                        ui.add(egui::Slider::new(&mut n_IN, 1..=10).text("Anzahl der Inputs"));
+                        ui.add(egui::Slider::new(&mut self.ChangedState.n_Input, 1..=10).text("Anzahl der Inputs"));
                     }
                     
-                    ui.add(egui::Slider::new(&mut n_OUT, 1..=10).text("Anzahl der Outputs"));
+                    ui.add(egui::Slider::new(&mut self.ChangedState.n_Output, 1..=10).text("Anzahl der Outputs"));
                     
                     ui.label("Zustandsinhalt: ");
-                    ui.text_edit_multiline(&mut self.NewState.content).on_hover_text("Zustandsablauf");
+                    ui.text_edit_multiline(&mut self.ChangedState.content).on_hover_text("Zustandsablauf");
+                    ui.horizontal(|ui| {
+                       if ui.button("Schließen").clicked(){
+                           self.ChangedState = New_state_input{
+                               n_Input : 1,
+                               n_Output : 1,
+                               title : "".parse().unwrap(),
+                               content : "".parse().unwrap(),
+                               is_start_state : false,
+                               ConVec : vec![String::from("");1]};
+
+                           self.selected_state = None;
+                       }
+
+                       if ui.button("Änderungen speichern").clicked(){
+                           for filtered_state in self.state_vec.iter_mut().filter(|state_in_vec| state_in_vec.ID==self.selected_state.as_ref().unwrap().ID){
+                               if self.ChangedState.title ==String::from(""){
+                                   self.ChangedState.title = self.selected_state.clone().unwrap().Name;
+                               }
+                               filtered_state.refactorState(self.ChangedState.n_Input,self.ChangedState.n_Output,self.ChangedState.title.clone(),self.ChangedState.content.clone(),self.ChangedState.is_start_state);
+                           }
+                           self.ChangedState = New_state_input{
+                               n_Input : 1,
+                               n_Output : 1,
+                               title : "".parse().unwrap(),
+                               content : "".parse().unwrap(),
+                               is_start_state : false,
+                               ConVec : vec![String::from("");1]};
+                           if self.ChangedState.is_start_state{
+                               self.start_state_exists = true;
+
+                           }
+                           if self.selected_state.as_ref().unwrap().isStart && !self.ChangedState.is_start_state{
+                               self.start_state_exists = false;
+                           }
+                           if self.selected_state.as_ref().unwrap().O.IOVec.len()!=self.ChangedState.n_Output{
+                               self.set_ouput_con = true;
+                           }
+                           else{
+                               self.selected_state = None;
+                           }
+                       }
+
+                    });
             });
-            
-        });
     });
 }
 }
