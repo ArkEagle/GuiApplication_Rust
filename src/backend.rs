@@ -165,9 +165,19 @@ impl State {
         let ContentText = egui::widgets::TextEdit::multiline(&mut self.content)
             .interactive(false)
             .code_editor()
-            .;
-        ui.put(ContentRect,ContentText);
-    }
+            .
+            ;
+        let mut  childui = ui.child_ui(ContentRect,egui::Layout::left_to_right(egui::Align::TOP));
+        let mut ContentScroll = egui::ScrollArea::both().id_source(self.ID).show(&mut childui,|ui|{
+            ui.add(ContentText).;
+
+
+        });
+        ContentScroll.inner_rect = ContentRect;
+
+            //ui.put(ContentRect, ContentText);
+        }
+
     pub(crate) fn refactorState(&mut self,n_In:usize, n_Out:usize, state_Name:String, Content: String,Start_state:bool){
         self.O.IOVec = vec![0;n_Out];
         self.I.IOVec = vec![0;n_In];
