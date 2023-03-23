@@ -165,11 +165,10 @@ impl State {
         let ContentText = egui::widgets::TextEdit::multiline(&mut self.content)
             .interactive(false)
             .code_editor()
-            .
             ;
         let mut  childui = ui.child_ui(ContentRect,egui::Layout::left_to_right(egui::Align::TOP));
         let mut ContentScroll = egui::ScrollArea::both().id_source(self.ID).show(&mut childui,|ui|{
-            ui.add(ContentText).;
+            ui.add(ContentText);
 
 
         });
