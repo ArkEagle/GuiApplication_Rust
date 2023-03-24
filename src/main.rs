@@ -7,7 +7,7 @@ use eframe::egui;
 use eframe::egui::{Pos2, Response, SidePanel, Ui};
 use eframe::egui::plot::PlotPoint;
 use eframe::epaint::RectShape;
-
+use std::{fs,path,io};
 
 fn main() -> Result<(), eframe::Error> {
     // Log to stdout (if you run with `RUST_LOG=debug`).
@@ -51,6 +51,8 @@ struct MyApp {
     selected_state_Output_Con : Vec<String>,
     set_ouput_con : bool,
     ChangedState : New_state_input,
+    filename : String,
+    in_saving : bool,
 }
 
 impl Default for MyApp {
@@ -119,7 +121,9 @@ impl Default for MyApp {
                 title : "".parse().unwrap(),
                 content : "".parse().unwrap(),
                 is_start_state : false,
-                ConVec : vec![String::from("");1]}
+                ConVec : vec![String::from("");1]},
+            filename : String::from(""),
+            in_saving : false,
         }
     }
 }
@@ -135,12 +139,19 @@ impl eframe::App for MyApp {
             
             self.setOutputCondition(ctx);
         }
+        if self.in_saving == true{
+            self.saveStateMachine(ctx);
+        }
         //====================Top Panel====================
         egui::TopBottomPanel::top("CreatePanel").show(ctx, |ui|{
             ui.horizontal(|ui|{
                 if self.init_connect{
                     ui.label("Verlassen des Verbindungsmodus ESC");
                 }
+                if ui.button("ZA speichern").clicked(){
+                    self.in_saving = true;
+                }
+
                 if ui.button("Generate Square").clicked() {
                     self.n_state += 1;
                     let mut state = self.init_state.clone();
@@ -542,6 +553,26 @@ impl MyApp {
             });
     });
 }
+    fn saveStateMachine(&mut self, ctx: &egui::Context, ){
+        let PathString = "./SystemStorage";
+        //let Path = fs::read_dir(path::Path::new(PathString)).unwrap();
+        egui::Window::new("Parameter für den neuen Zustand").collapsible(false).open(&mut self.in_saving).show(ctx, |ui| {
+            egui::ScrollArea::vertical().max_height(150.0).show(ui,|ui|{
+                ui.vertical(|ui| {
+                    for entry in fs::read_dir(path::Path::new(PathString)).unwrap() {
+                        let file_entry = String::from(entry.unwrap().file_name().to_str().unwrap());
+                        if ui.button(&file_entry).clicked() {
+                            //let entry = entry.unwrap().file_name();
+                            self.filename = file_entry;
+                        }
+                    }
+                });
+            });
+
+            ui.separator();
+            ui.text_edit_singleline( &mut self.filename);
+        });
+    }
 }
 
 

@@ -1,5 +1,7 @@
 use eframe::egui;
 use eframe::egui::{Align, Galley, Ui};
+use std::{fs,path,io};
+use eframe::epaint::tessellator::Path;
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct State {
@@ -165,13 +167,10 @@ impl State {
         let ContentText = egui::widgets::TextEdit::multiline(&mut self.content)
             .interactive(false)
             .code_editor()
-            .
             ;
         let mut  childui = ui.child_ui(ContentRect,egui::Layout::left_to_right(egui::Align::TOP));
         let mut ContentScroll = egui::ScrollArea::both().id_source(self.ID).show(&mut childui,|ui|{
-            ui.add(ContentText).;
-
-
+            ui.add(ContentText);
         });
         ContentScroll.inner_rect = ContentRect;
 
