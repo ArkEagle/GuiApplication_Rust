@@ -4,10 +4,13 @@ mod backend;
 
 use backend::{clickedIO, State};
 use eframe::egui;
-use eframe::egui::{Pos2, Response, SidePanel, Ui};
+use eframe::egui::{Pos2, Response, SidePanel, TextBuffer, Ui};
 use eframe::egui::plot::PlotPoint;
 use eframe::epaint::RectShape;
 use std::{fs,path,io};
+use std::fs::File;
+use std::io::{BufWriter, Write};
+use std::ops::Add;
 
 fn main() -> Result<(), eframe::Error> {
     // Log to stdout (if you run with `RUST_LOG=debug`).
@@ -555,7 +558,7 @@ impl MyApp {
 }
     fn saveStateMachine(&mut self, ctx: &egui::Context, ){
         let PathString = "./SystemStorage";
-        //let Path = fs::read_dir(path::Path::new(PathString)).unwrap();
+        let mut init_write = false;
         egui::Window::new("Parameter für den neuen Zustand").collapsible(false).open(&mut self.in_saving).show(ctx, |ui| {
             egui::ScrollArea::vertical().max_height(150.0).show(ui,|ui|{
                 ui.vertical(|ui| {
@@ -570,8 +573,52 @@ impl MyApp {
             });
 
             ui.separator();
-            ui.text_edit_singleline( &mut self.filename);
+            ui.horizontal(|ui|{
+                ui.text_edit_singleline( &mut self.filename);
+                if ui.button("Speichern").clicked() /*&& self.filename == String::from("")*/{
+                    init_write = true;
+                }
+                if init_write{
+                    ui.label("in saving");
+                }
+            });
         });
+        if init_write{
+            self.writeFileStateMachine();
+
+            init_write = false;
+        }
+    }
+    fn writeFileStateMachine(&mut self){
+        let PathString = "./SystemStorage/";
+        let mut file = fs::File::create((String::from(PathString)+ self.filename.as_str()).as_str()).unwrap();
+        let mut content = String::from("state_vec : \n");
+        //=====State-Verbindungsvektor schreiben=====
+        for i in &self.IOPair_vec{
+            //erster State
+            let mut PairString0 = String::from("\t\t[[")+ &*i[0].State.to_string()+ &*String::from(",") +&*i[0].IO_number.to_string()+ &*String::from(",");
+            if i[0].IOType ==backend::IoType::Input{
+                PairString0.push_str("Input");
+            }
+            else if i[0].IOType ==backend::IoType::Output {
+                PairString0.push_str("Output");
+            }
+            PairString0.push_str("]");
+            //zweiter State
+            let mut PairString1 = String::from(",[")+ &*i[1].State.to_string()+ &*String::from(",") +&*i[1].IO_number.to_string()+ &*String::from(",");
+            if i[1].IOType ==backend::IoType::Input{
+                PairString1.push_str("Input");
+            }
+            else if i[1].IOType ==backend::IoType::Output {
+                PairString1.push_str("Output");
+            }
+            PairString1.push_str("]]\n");
+            content.push_str(&*PairString0);
+            content.push_str(&*PairString1);
+        }
+
+        file.write(content.clone().as_ref());
+
     }
 }
 
