@@ -592,7 +592,7 @@ impl MyApp {
     fn writeFileStateMachine(&mut self){
         let PathString = "./SystemStorage/";
         let mut file = fs::File::create((String::from(PathString)+ self.filename.as_str()).as_str()).unwrap();
-        let mut content = String::from("state_vec : \n");
+        let mut content = String::from("IOPair_vec: \n");
         //=====State-Verbindungsvektor schreiben=====
         for i in &self.IOPair_vec{
             //erster State
@@ -616,7 +616,27 @@ impl MyApp {
             content.push_str(&*PairString0);
             content.push_str(&*PairString1);
         }
-
+        content.push_str("\n");
+        content.push_str("state_vec: \n");
+        //=====Statevektor schreiben=====
+        for state in &self.state_vec{
+            let mut StateString = String::from("ID: ")+ &*state.ID.to_string();
+            //Input- und Outputanzahl schreiben
+            StateString.push_str(";\n Inputnumber: ");
+            let I_len = state.I.IOVec.len();
+            StateString = StateString+&*I_len.to_string();
+            StateString.push_str(";\n Outputnumber: ");
+            let O_len = state.I.IOVec.len();
+            StateString = StateString+&*O_len.to_string();
+            
+            //Outputbedingungen schreiben
+            StateString.push_str(";\n  Ouputcondition: [");
+            for cond in &state.O_con_vec{
+                StateString.push_str(&*cond);
+                StateString.push_str(&*String::from(","));
+            }
+            StateString.push_str("];\n");
+        }
         file.write(content.clone().as_ref());
 
     }
