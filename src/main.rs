@@ -7,11 +7,12 @@ use eframe::egui;
 use eframe::egui::{Pos2, Response, SidePanel, TextBuffer, Ui};
 use eframe::egui::plot::PlotPoint;
 use eframe::epaint::RectShape;
-use std::{fs,path,io};
+use std::{fs, path, io, backtrace};
 use std::fs::File;
-use std::io::{BufWriter, Write};
+use std::io::{BufWriter, Read, Write};
 use std::ops::Add;
-
+use serde::{Serialize,Deserialize};
+use serde_json;
 fn main() -> Result<(), eframe::Error> {
     // Log to stdout (if you run with `RUST_LOG=debug`).
     tracing_subscriber::fmt::init();
@@ -56,6 +57,7 @@ struct MyApp {
     ChangedState : New_state_input,
     filename : String,
     in_saving : bool,
+    in_loading : bool,
 }
 
 impl Default for MyApp {
@@ -127,6 +129,7 @@ impl Default for MyApp {
                 ConVec : vec![String::from("");1]},
             filename : String::from(""),
             in_saving : false,
+            in_loading : false,
         }
     }
 }
@@ -142,8 +145,11 @@ impl eframe::App for MyApp {
             
             self.setOutputCondition(ctx);
         }
-        if self.in_saving == true{
+        if self.in_saving{
             self.saveStateMachine(ctx);
+        }
+        if self.in_loading{
+            self.loadStateMachine(ctx);
         }
         //====================Top Panel====================
         egui::TopBottomPanel::top("CreatePanel").show(ctx, |ui|{
@@ -154,7 +160,9 @@ impl eframe::App for MyApp {
                 if ui.button("ZA speichern").clicked(){
                     self.in_saving = true;
                 }
-
+                if ui.button("ZA laden").clicked(){
+                    self.in_loading = true;
+                }
                 if ui.button("Generate Square").clicked() {
                     self.n_state += 1;
                     let mut state = self.init_state.clone();
@@ -335,7 +343,6 @@ impl eframe::App for MyApp {
                 }
             }
             };//End of Loop
-                ui.label(format!("N-Connection: {}",self.IOPair_vec.len()));
             //zeichnen von bestehenden Verbindungen
             for connection in &self.IOPair_vec{
                 let index_input = self.state_vec.iter().position(|input_state| input_state.ID == connection[0].State  ).unwrap();
@@ -398,7 +405,7 @@ impl eframe::App for MyApp {
 
 impl MyApp {
     fn newState(&mut self, ctx : &egui::Context) {
-        egui::Window::new("Parameter für den neuen Zustand").show(ctx, |ui| {
+        egui::Window::new("Zustandsautomat speichern").show(ctx, |ui| {
             ui.vertical(|ui| {
                 ui.label(format!("Zustands-ID: {}",self.n_state));
                 ui.horizontal(|ui|{
@@ -578,9 +585,6 @@ impl MyApp {
                 if ui.button("Speichern").clicked() /*&& self.filename == String::from("")*/{
                     init_write = true;
                 }
-                if init_write{
-                    ui.label("in saving");
-                }
             });
         });
         if init_write{
@@ -644,6 +648,68 @@ impl MyApp {
     }
     fn writeFileStateMachine(&mut self){
         //TODO: mit Serde arbeiten
+        let PathString = "./SystemStorage/";
+        let mut file = fs::File::create((String::from(PathString)+ self.filename.as_str()).as_str()).unwrap();
+        let mut content : String = serde_json::to_string(&self.state_vec).unwrap();
+        content.push_str(&*String::from("\n"));
+        content.push_str(&*serde_json::to_string(&self.IOPair_vec).unwrap());
+        file.write(content.clone().as_ref());
+    }
+
+    fn loadStateMachine(&mut self, ctx: &egui::Context, ){
+        let PathString = "./SystemStorage";
+        let mut init_read = false;
+        egui::Window::new("Zustandsautomat laden").collapsible(false).open(&mut self.in_loading).show(ctx, |ui| {
+            egui::ScrollArea::vertical().max_height(150.0).show(ui,|ui|{
+                ui.vertical(|ui| {
+                    for entry in fs::read_dir(path::Path::new(PathString)).unwrap() {
+                        let file_entry = String::from(entry.unwrap().file_name().to_str().unwrap());
+                        if ui.button(&file_entry).clicked() {
+                            //let entry = entry.unwrap().file_name();
+                            self.filename = file_entry;
+                        }
+                    }
+                });
+            });
+
+            ui.separator();
+            ui.horizontal(|ui|{
+                ui.label( &self.filename);
+                if ui.button("Laden").clicked() /*&& self.filename == String::from("")*/{
+                    init_read = true;
+                }
+            });
+        });
+        if init_read{
+            self.readFileStateMachine();
+            init_read = false;
+        }
+    }
+    fn readFileStateMachine(&mut self){
+        let PathString = "./SystemStorage/";
+        let mut file = fs::File::open((String::from(PathString)+ self.filename.as_str()).as_str()).unwrap();
+        let content = fs::read_to_string((String::from(PathString)+ self.filename.as_str())).expect("Error");
+        if content != String::from("Error"){
+            let mut lines =  content.lines();
+            let state_vec : Vec<backend::State> = serde_json::from_str(&lines.next().unwrap()).unwrap();
+
+            let IOPair_vec : Vec<[backend::clickedIO;2]> = serde_json::from_str(&lines.next().unwrap()).unwrap();
+
+            self.state_vec = state_vec;
+            self.IOPair_vec = IOPair_vec;
+            self.n_state = 0;
+            for state in self.state_vec.iter(){
+                if self.n_state<state.ID{
+                    self.n_state=state.ID
+                }
+                if state.isStart{
+                    self.start_state_exists = true;
+
+                }
+            }
+
+        }
+
     }
 }
 

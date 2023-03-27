@@ -2,25 +2,26 @@ use eframe::egui;
 use eframe::egui::{Align, Galley, Ui};
 use std::{fs,path,io};
 use eframe::epaint::tessellator::Path;
-
-#[derive(Debug, Clone, PartialEq)]
+use serde::{Serialize,Deserialize};
+#[derive(Debug, Clone, PartialEq,Serialize, Deserialize)]
 pub(crate) struct State {
+    pub(crate) ID : u8,
+    pub(crate) Name :  String,
+    pub(crate) isStart : bool,
     pub(crate) I : IO,
     pub(crate) O : IO,
     pub(crate) O_con_vec : Vec<String>,
-    pub(crate) Name :  String,
-    pub(crate) ID : u8,
     pub(crate) content : String,
     pub(crate) frame : egui::epaint::RectShape,
     pub(crate) IO_anker_template : egui::epaint::CircleShape,
-    pub(crate) isStart : bool,
+
 }
-#[derive(Debug, Clone,PartialEq,)]
+#[derive(Debug, Clone,PartialEq,Serialize, Deserialize)]
 pub(crate) struct IO{
     pub(crate) IOVec : Vec<u8>,
     pub(crate) Type : IoType
 }
-#[derive(Debug, Clone, PartialEq )]
+#[derive(Debug, Clone, PartialEq,Serialize, Deserialize )]
 pub(crate) enum IoType {
     Input,
     Output
@@ -186,7 +187,7 @@ impl State {
         self.O_con_vec = vec![String::from("");n_Out];
     }
 }
-#[derive(Debug, Clone, PartialEq )]
+#[derive(Debug, Clone, PartialEq,Serialize, Deserialize )]
 pub(crate) struct clickedIO{
     pub(crate) IOType : IoType,
     pub(crate) IO_number : u8,
