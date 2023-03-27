@@ -589,7 +589,7 @@ impl MyApp {
             init_write = false;
         }
     }
-    fn writeFileStateMachine(&mut self){
+    fn writeFileStateMachine_selfserial(&mut self){
         let PathString = "./SystemStorage/";
         let mut file = fs::File::create((String::from(PathString)+ self.filename.as_str()).as_str()).unwrap();
         let mut content = String::from("IOPair_vec: \n");
@@ -636,9 +636,14 @@ impl MyApp {
                 StateString.push_str(&*String::from(","));
             }
             StateString.push_str("];\n");
+            StateString.push_str("Name: ");
+            StateString.push_str(&*state.Name);
+
         }
         file.write(content.clone().as_ref());
-
+    }
+    fn writeFileStateMachine(&mut self){
+        //TODO: mit Serde arbeiten
     }
 }
 
