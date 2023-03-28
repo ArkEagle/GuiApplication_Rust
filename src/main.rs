@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
-
+//TODO: eventuell Sprungmarken hinzufügen
+//TODO: Systematische Simulation (Recherche: zB Sackgassen)
 mod backend;
 
 use backend::{clickedIO, State};
