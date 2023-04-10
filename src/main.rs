@@ -5,7 +5,7 @@ mod backend;
 
 use backend::{clickedIO, State};
 use eframe::egui;
-use eframe::egui::{Pos2, Response, SidePanel, TextBuffer, Ui};
+use eframe::egui::{Event, Pos2, Response, SidePanel, TextBuffer, Ui};
 use eframe::egui::plot::PlotPoint;
 use eframe::epaint::RectShape;
 use std::{fs, path, io, backtrace};
@@ -59,6 +59,7 @@ struct MyApp {
     filename : String,
     in_saving : bool,
     in_loading : bool,
+    scale : f32,
 }
 
 impl Default for MyApp {
@@ -131,6 +132,7 @@ impl Default for MyApp {
             filename : String::from(""),
             in_saving : false,
             in_loading : false,
+            scale : 1.0,
         }
     }
 }
@@ -178,53 +180,13 @@ impl eframe::App for MyApp {
         //====================Central Panel====================
 
         egui::CentralPanel::default().show(ctx, |ui| {
-
-            /*
-            if self.click {
-                ui.heading("My egui Application");
+            if ui.input(|i|{i.modifiers.ctrl}){
+                ui.label(self.scale.to_string());
+                let zoom = ui.input(|i| i.zoom_delta());
+                ui.label(zoom.to_string());
             }
-            ui.horizontal(|ui| {
-                let name_label = ui.label("Your name: ");
-                ui.text_edit_singleline(&mut self.name)
-                    .labelled_by(name_label.id);
-            });
-            ui.add(egui::Slider::new(&mut self.age, 0..=120).text("age"));
-            if ui.button("Click each year").clicked() {
-                self.age += 1;
-            }
-            ui.label(format!("Hello '{}', age {}", self.name, self.age));
-            */
 
             let mut delet_vec : Vec<backend::State> = Vec::new();
-            /*
-            for i_frame in self.square_rec_vec.iter_mut(){
-                //===========State Painting===========
-                ui.painter().add(*i_frame);
-                let i_r = ui.allocate_rect(i_frame.rect,egui::Sense::drag());
-                //===========State Interaction===========
-                if i_r.clicked() {
-                    self.sidebar_enabled = true;
-                }
-                if i_r.dragged(){
-                    let delta = i_r.drag_delta();
-                    i_frame.rect.min = Pos2{x: i_frame.rect.min.x+delta[0],y: i_frame.rect.min.y+delta[1]};
-                    i_frame.rect.max = Pos2{x: i_frame.rect.max.x+delta[0],y: i_frame.rect.max.y+delta[1]};
-                }
-                if i_r.clicked_elsewhere(){
-                    self.sidebar_enabled = false;
-                }
-                /*
-                if i_r.secondary_clicked(){
-                    delet_vec.push(*i_frame)
-                }*/
-                i_r.context_menu(|ui|{
-                    if ui.button("Delete").clicked(){
-                        delet_vec.push(*i_frame);
-                        ui.close_menu();
-                    }
-                });
-            };
-            */
             let mut clicked_inframe : bool = false;
             let mut clicked_io_b : bool = false;
             for i_state in self.state_vec.iter_mut(){
@@ -383,6 +345,7 @@ impl eframe::App for MyApp {
                 egui::Stroke::NONE
             )*/
         });
+
         //====================Right Sidepanel====================
         match &mut self.selected_state{
             None => {},
