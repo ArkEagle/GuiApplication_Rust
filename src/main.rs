@@ -180,10 +180,11 @@ impl eframe::App for MyApp {
         //====================Central Panel====================
 
         egui::CentralPanel::default().show(ctx, |ui| {
+            let zoom = ui.input(|i| i.zoom_delta());
             if ui.input(|i|{i.modifiers.ctrl}){
-                ui.label(self.scale.to_string());
-                let zoom = ui.input(|i| i.zoom_delta());
                 ui.label(zoom.to_string());
+                self.scale = zoom*self.scale;
+                ui.label(self.scale.to_string());
             }
 
             let mut delet_vec : Vec<backend::State> = Vec::new();
@@ -191,7 +192,6 @@ impl eframe::App for MyApp {
             let mut clicked_io_b : bool = false;
             for i_state in self.state_vec.iter_mut(){
                 //===========State Painting===========
-
                 match &self.selected_state {
                     None => {},
                     Some(state) => {
@@ -203,6 +203,10 @@ impl eframe::App for MyApp {
                         }
                     }
                 }
+                i_state.frame.rect.min.x *= zoom;
+                i_state.frame.rect.min.y *= zoom;
+                i_state.frame.rect.max.x *= zoom;
+                i_state.frame.rect.max.y *= zoom;
 
                 ui.painter().add(i_state.frame);
                 i_state.DrawTitle(ui);
@@ -305,6 +309,7 @@ impl eframe::App for MyApp {
                     }
                 }
             }
+
             };//End of Loop
             //zeichnen von bestehenden Verbindungen
             for connection in &self.IOPair_vec{
@@ -611,7 +616,6 @@ impl MyApp {
         file.write(content.clone().as_ref());
     }
     fn writeFileStateMachine(&mut self){
-        //TODO: mit Serde arbeiten
         let PathString = "./SystemStorage/";
         let mut file = fs::File::create((String::from(PathString)+ self.filename.as_str()).as_str()).unwrap();
         let mut content : String = serde_json::to_string(&self.state_vec).unwrap();
