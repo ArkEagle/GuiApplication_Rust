@@ -60,6 +60,8 @@ struct MyApp {
     in_saving : bool,
     in_loading : bool,
     scale : f32,
+    min_scale : f32,
+    max_scale : f32,
 }
 
 impl Default for MyApp {
@@ -82,7 +84,7 @@ impl Default for MyApp {
             state_vec : vec![],
             sidebar_enabled : false,
             n_state : 0,
-            init_state : backend::State::new(5, 2, "".parse().unwrap(), "".parse().unwrap(), 0,false),/*backend::State {
+            init_state : backend::State::new(5, 2, "".parse().unwrap(), "".parse().unwrap(), 0,false, 1.0),/*backend::State {
                 I: backend::IO { Type: backend::IoType::Input, IOVec: Vec::with_capacity(0) },
                 O: backend::IO { Type: backend::IoType::Input, IOVec: Vec::with_capacity(0) },
                 Name : ("").parse().unwrap(),
@@ -133,6 +135,8 @@ impl Default for MyApp {
             in_saving : false,
             in_loading : false,
             scale : 1.0,
+            min_scale : 0.3,
+            max_scale : 2.0,
         }
     }
 }
@@ -180,10 +184,19 @@ impl eframe::App for MyApp {
         //====================Central Panel====================
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            let zoom = ui.input(|i| i.zoom_delta());
+            let mut zoom = 1.0;
+            if self.scale >= self.min_scale{
+                zoom = ui.input(|i| i.zoom_delta());
+                self.scale = zoom*self.scale;
+            }
+            else if self.scale < self.min_scale {
+                zoom = 1.0;
+                self.scale = self.min_scale;
+            }
+
             if ui.input(|i|{i.modifiers.ctrl}){
                 ui.label(zoom.to_string());
-                self.scale = zoom*self.scale;
+
                 ui.label(self.scale.to_string());
             }
 
@@ -202,17 +215,13 @@ impl eframe::App for MyApp {
                             ui.painter().add(highlight);
                         }
                     }
-                }
-                i_state.frame.rect.min.x *= zoom;
-                i_state.frame.rect.min.y *= zoom;
-                i_state.frame.rect.max.x *= zoom;
-                i_state.frame.rect.max.y *= zoom;
+                };
 
-                ui.painter().add(i_state.frame);
-                i_state.DrawTitle(ui);
-                i_state.DrawContent(ui);
+                i_state.Draw_Box(ui,self.scale);
+                i_state.DrawTitle(ui, self.scale);
+                i_state.DrawContent(ui, self.scale);
                 let i_r = ui.allocate_rect(i_state.frame.rect,egui::Sense::drag());
-                self.clickedIO = i_state.Draw_IO(ui);
+                self.clickedIO = i_state.Draw_IO(ui, &self.scale);
                 //clicks auswerten
                 match &self.clickedIO {
                     None => {;},
@@ -270,13 +279,13 @@ impl eframe::App for MyApp {
                 if self.init_connect{
                     if (self.IOPair[0].State != 0 as u8 && self.IOPair[1].State == 0 as u8){
                         if i_state.ID == self.IOPair[0].State{
-                            self.LineStart =egui::Pos2{x: i_state.frame.rect.min.x+4.0,y: i_state.frame.rect.min.y + self.IOPair[0].IO_number as f32*10.0+6.0} ;
+                            self.LineStart =egui::Pos2{x: i_state.frame.rect.min.x+4.0,y: i_state.frame.rect.min.y + (self.IOPair[0].IO_number as f32*10.0+4.0)*self.scale} ;
                         }
                         //let IO_Pos = self.state_vec[State_pos];
                         }
                     else if (self.IOPair[0].State == 0 as u8 && self.IOPair[1].State != 0 as u8){
                         if i_state.ID == self.IOPair[1].State{
-                            self.LineStart =egui::Pos2{x: i_state.frame.rect.max.x-4.0,y: i_state.frame.rect.min.y + self.IOPair[1].IO_number as f32*10.0+6.0} ;
+                            self.LineStart =egui::Pos2{x: i_state.frame.rect.max.x-4.0,y: i_state.frame.rect.min.y + (self.IOPair[1].IO_number as f32*10.0+4.0)*self.scale} ;
                         }
                     }
                     else if (self.IOPair[0].State != 0 as u8 && self.IOPair[1].State != 0 as u8) {
@@ -304,7 +313,7 @@ impl eframe::App for MyApp {
                 match ctx.pointer_hover_pos(){
                     None => {},
                     Some(Pos) => {
-                        let Line = egui::epaint::Shape::LineSegment{points:[Pos,self.LineStart],stroke: egui::Stroke{width:2.0,color : egui::Color32::from_rgb(255, 128, 128)}};
+                        let Line = egui::epaint::Shape::LineSegment{points:[Pos,self.LineStart],stroke: egui::Stroke{width:2.0*self.scale,color : egui::Color32::from_rgb(255, 128, 128)}};
                         ui.painter().add(Line);
                     }
                 }
@@ -315,9 +324,9 @@ impl eframe::App for MyApp {
             for connection in &self.IOPair_vec{
                 let index_input = self.state_vec.iter().position(|input_state| input_state.ID == connection[0].State  ).unwrap();
                 let index_output = self.state_vec.iter().position(|output_state| output_state.ID == connection[1].State  ).unwrap();
-                let Pos_input = Pos2{x: self.state_vec[index_input].frame.rect.min.x+4.0,y:self.state_vec[index_input].frame.rect.min.y+connection[0].IO_number as f32*10.0+6.0};
-                let Pos_output = Pos2{x: self.state_vec[index_output].frame.rect.max.x-4.0,y:self.state_vec[index_output].frame.rect.min.y+connection[1].IO_number as f32*10.0+6.0};
-                let line = egui::epaint::Shape::LineSegment { points: [Pos_input,Pos_output], stroke: egui::Stroke{width : 2.0, color : egui::Color32::from_rgb(220, 220, 220)} };
+                let Pos_input = Pos2{x: self.state_vec[index_input].frame.rect.min.x+4.0*self.scale,y:self.state_vec[index_input].frame.rect.min.y+(connection[0].IO_number as f32*10.0+4.0)*self.scale};
+                let Pos_output = Pos2{x: self.state_vec[index_output].frame.rect.max.x-4.0*self.scale,y:self.state_vec[index_output].frame.rect.min.y+(connection[1].IO_number as f32*10.0+4.0)*self.scale};
+                let line = egui::epaint::Shape::LineSegment { points: [Pos_input,Pos_output], stroke: egui::Stroke{width : 2.0*self.scale, color : egui::Color32::from_rgb(220, 220, 220)} };
                 ui.painter().add(line);
             }   
             //löschen von zu löschenden Zuständen
@@ -406,7 +415,7 @@ impl MyApp {
                         if self.NewState.is_start_state{
                             self.start_state_exists = true;
                         }
-                        let state : backend::State = backend::State::new(self.NewState.n_Input,self.NewState.n_Output,self.NewState.title.clone(),self.NewState.content.clone(),self.n_state,self.NewState.is_start_state);
+                        let state : backend::State = backend::State::new(self.NewState.n_Input,self.NewState.n_Output,self.NewState.title.clone(),self.NewState.content.clone(),self.n_state,self.NewState.is_start_state, self.scale);
                         self.selected_state = Some(state.clone());
                         self.state_vec.push(state);
                         self.NewState = New_state_input{

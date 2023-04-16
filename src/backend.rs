@@ -14,7 +14,7 @@ pub(crate) struct State {
     pub(crate) content : String,
     pub(crate) frame : egui::epaint::RectShape,
     pub(crate) IO_anker_template : egui::epaint::CircleShape,
-
+    pub(crate) current_scale : f32,
 }
 #[derive(Debug, Clone,PartialEq,Serialize, Deserialize)]
 pub(crate) struct IO{
@@ -28,7 +28,7 @@ pub(crate) enum IoType {
 }
 impl State {
 
-    pub(crate) fn new(n_In:usize, n_Out:usize, state_Name:String, Content: String, state_ID:u8,Start_state:bool) ->Self{
+    pub(crate) fn new(n_In:usize, n_Out:usize, state_Name:String, Content: String, state_ID:u8,Start_state:bool, scale : f32) ->Self{
 
         Self{
             O : IO{
@@ -43,8 +43,8 @@ impl State {
             ID : state_ID,
             content : Content,
             frame : egui::epaint::RectShape{
-                rect: egui::Rect{min: egui::Pos2 { x:40.0, y :40.0 },max: egui::Pos2{ x:300.0, y :200.0 }},
-                rounding: egui::Rounding{nw:0.2,ne:0.2,sw:0.2,se:0.2},
+                rect: egui::Rect{min: egui::Pos2 { x:40.0*scale, y :40.0*scale },max: egui::Pos2{ x:300.0*scale, y :200.0*scale }},
+                rounding: egui::Rounding{nw:2.0,ne:2.0,sw:2.0,se:2.0},
                 fill: egui::Color32::from_rgb(96, 96, 96),
                 stroke: egui::Stroke::NONE
             },
@@ -56,6 +56,7 @@ impl State {
                 }},
             isStart : Start_state,
             O_con_vec : vec![String::from("");n_Out],
+            current_scale : scale,
         }
 
     }
@@ -89,7 +90,22 @@ impl State {
         }
     }
     /// Output ungleich None, wenn ein IO gedrückt wurde
-    pub(crate) fn Draw_IO(&mut self, ui: &mut egui::Ui) -> Option<clickedIO>{
+    pub(crate) fn Draw_Box(&mut self, ui: &mut egui::Ui, scale : f32){
+        if self.current_scale != scale{
+            let zoom = scale/self.current_scale;
+            self.frame.rect.min.x *= zoom;
+            self.frame.rect.min.y *= zoom;
+            self.frame.rect.max.x *= zoom;
+            self.frame.rect.max.y *= zoom;
+            self.frame.rounding.se *= zoom;
+            self.frame.rounding.ne *= zoom;
+            self.frame.rounding.sw *= zoom;
+            self.frame.rounding.nw *= zoom;
+            self.current_scale = scale;
+        }
+        ui.painter().add(self.frame);
+    }
+    pub(crate) fn Draw_IO(&mut self, ui: &mut egui::Ui, scale : &f32) -> Option<clickedIO>{
         let mut clicked_IO = None;
         let mut leng_I : f32 = 0.0;
         let mut leng_O : f32 = 0.0;
@@ -97,10 +113,14 @@ impl State {
         let mut offset:u8 = 0;
         for i in  self.I.IOVec.iter_mut(){
             let mut anker = self.IO_anker_template.clone();
+
             if *i != 0 as u8 {
                 anker.fill = egui::Color32::from_rgb(255, 255, 255);
             }
-            anker.center.y += offset as f32*10.0;
+            anker.center.x = self.frame.rect.min.x+4.0*scale;
+            anker.center.y = self.frame.rect.min.y+(offset as f32*10.0+4.0)*scale;
+            //anker.center.y *= scale;
+            anker.radius *= scale;
             ui.painter().add(anker);
             let r_a_i = ui.allocate_rect(anker.visual_bounding_rect(),egui::Sense::click_and_drag());
             if r_a_i.clicked(){
@@ -112,7 +132,7 @@ impl State {
                 });
             }
             offset += 1;
-            leng_I = offset as f32*10.0+6.0;
+            leng_I = (offset as f32*10.0+6.0)*scale;
         }
         //==============Drawing Outputs==============
         offset = 0;
@@ -121,8 +141,9 @@ impl State {
             if *o != 0 as u8 {
                 anker.fill = egui::Color32::from_rgb(255, 255, 255);
             }
-            anker.center.x = self.frame.rect.max.x-4.0;
-            anker.center.y += offset as f32*10.0;
+            anker.center.x = self.frame.rect.max.x-4.0*scale;
+            anker.center.y = self.frame.rect.min.y+(offset as f32*10.0+4.0)*scale;;
+            anker.radius *= scale;
             ui.painter().add(anker);
             let r_a_o = ui.allocate_rect(anker.visual_bounding_rect(),egui::Sense::click_and_drag());
             if r_a_o.clicked(){
@@ -137,7 +158,7 @@ impl State {
 
 
             offset += 1;
-            leng_O = offset as f32*10.0+6.0;
+            leng_O = (offset as f32*10.0+6.0)*scale;
         }
         //==============Resize Rect==============
         if self.frame.rect.max.y-self.frame.rect.min.y < leng_I {
@@ -148,34 +169,42 @@ impl State {
         }
         return clicked_IO;
     }
-    pub(crate) fn DrawTitle(&self, ui: &mut egui::Ui){
+    pub(crate) fn DrawTitle(&self, ui: &mut egui::Ui, scale : f32){
         let TitleRect : egui::Rect  = egui::Rect{
-            min : egui::Pos2{x:self.frame.rect.min.x+6.0, y:self.frame.rect.min.y+6.0},
-            max : egui::Pos2{x:self.frame.rect.max.x-6.0, y:self.frame.rect.min.y+26.0}
+            min : egui::Pos2{x:self.frame.rect.min.x+6.0*scale, y:self.frame.rect.min.y+6.0*scale},
+            max : egui::Pos2{x:self.frame.rect.max.x-6.0*scale, y:self.frame.rect.min.y+26.0*scale}
         };
-        let mut TitleText : egui::widgets::Label = egui::widgets::Label::new(egui::RichText::from(self.Name.clone()).size(12.0));
+        let mut TitleText : egui::widgets::Label = egui::widgets::Label::new(egui::RichText::from(self.Name.clone()).size(12.0*scale));
         if self.isStart{ 
-            TitleText = egui::widgets::Label::new(egui::RichText::from(String::from("STARTSTATE \n")+&self.Name.clone()).size(12.0));
+            TitleText = egui::widgets::Label::new(egui::RichText::from(String::from("STARTSTATE \n")+&self.Name.clone()).size(12.0*scale));
         }
 
         ui.put(TitleRect,TitleText);
 
     }
-    pub(crate) fn DrawContent(&mut self, ui : &mut egui::Ui) {
+    pub(crate) fn DrawContent(&mut self, ui : &mut egui::Ui, scale : f32) {
         let ContentRect : egui::Rect  = egui::Rect{
-            min : egui::Pos2{x:self.frame.rect.min.x+15.0, y:self.frame.rect.min.y+30.0},
-            max : egui::Pos2{x:self.frame.rect.max.x-15.0, y:self.frame.rect.max.y-5.0}};
-        let ContentText = egui::widgets::TextEdit::multiline(&mut self.content)
-            .interactive(false)
-            .code_editor()
-            ;
-        let mut  childui = ui.child_ui(ContentRect,egui::Layout::left_to_right(egui::Align::TOP));
-        let mut ContentScroll = egui::ScrollArea::both().id_source(self.ID).show(&mut childui,|ui|{
-            ui.add(ContentText);
+            min : egui::Pos2{x:self.frame.rect.min.x+15.0*scale, y:self.frame.rect.min.y+30.0*scale},
+            max : egui::Pos2{x:self.frame.rect.max.x-15.0*scale, y:self.frame.rect.max.y-5.0*scale}};
+        let size = egui::Vec2{ x: ContentRect.max.x-ContentRect.min.x, y: ContentRect.max.y-ContentRect.min.y };
+        let ui_offset : f32 = 5.0;
+        let UiRect : egui::Rect  = egui::Rect{
+            min : egui::Pos2{x:self.frame.rect.min.x+(15.0+ui_offset)*scale, y:self.frame.rect.min.y+(30.0+ui_offset)*scale},
+            max : egui::Pos2{x:self.frame.rect.max.x-(15.0+ui_offset)*scale, y:self.frame.rect.max.y-(5.0+ui_offset)*scale}};
+
+        let mut  childui = ui.child_ui(UiRect,egui::Layout::left_to_right(egui::Align::TOP));
+        let textbox =  egui::epaint::RectShape{
+            rect: ContentRect,
+            rounding: egui::Rounding{nw:6.0*scale,ne:6.0*scale,sw:6.0*scale,se:6.0*scale},
+            fill: egui::Color32::from_rgb(0, 0, 0),
+            stroke: Default::default(),
+        };
+
+        let mut ContentScroll = egui::ScrollArea::both().id_source(self.ID).auto_shrink([false;2]).show(&mut childui,|ui|{
+            ui.painter().add(textbox);
+            ui.label(egui::RichText::from(&self.content).size(11.0*scale));
         });
         ContentScroll.inner_rect = ContentRect;
-
-            //ui.put(ContentRect, ContentText);
         }
 
     pub(crate) fn refactorState(&mut self,n_In:usize, n_Out:usize, state_Name:String, Content: String,Start_state:bool){
