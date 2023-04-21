@@ -90,13 +90,17 @@ impl State {
         }
     }
     /// Output ungleich None, wenn ein IO gedrückt wurde
-    pub(crate) fn Draw_Box(&mut self, ui: &mut egui::Ui, scale : f32){
+    pub(crate) fn Draw_Box(&mut self, ui: &mut egui::Ui, scale : f32, scrollDelta : egui::Vec2){
+        self.frame.rect.min.x+=scrollDelta.x;
+        self.frame.rect.min.y+=scrollDelta.y;
+        self.frame.rect.max.x+=scrollDelta.x;
+        self.frame.rect.max.y+=scrollDelta.y;
         if self.current_scale != scale{
             let zoom = scale/self.current_scale;
-            self.frame.rect.min.x *= zoom;
-            self.frame.rect.min.y *= zoom;
-            self.frame.rect.max.x *= zoom;
-            self.frame.rect.max.y *= zoom;
+            self.frame.rect.min.x *=  zoom;
+            self.frame.rect.min.y *=  zoom;
+            self.frame.rect.max.x *=  zoom;
+            self.frame.rect.max.y *=  zoom;
             self.frame.rounding.se *= zoom;
             self.frame.rounding.ne *= zoom;
             self.frame.rounding.sw *= zoom;
@@ -105,7 +109,7 @@ impl State {
         }
         ui.painter().add(self.frame);
     }
-    pub(crate) fn Draw_IO(&mut self, ui: &mut egui::Ui, scale : &f32) -> Option<clickedIO>{
+    pub(crate) fn Draw_IO(&mut self, ui: &mut egui::Ui, scale : &f32 ) -> Option<clickedIO>{
         let mut clicked_IO = None;
         let mut leng_I : f32 = 0.0;
         let mut leng_O : f32 = 0.0;
@@ -169,7 +173,7 @@ impl State {
         }
         return clicked_IO;
     }
-    pub(crate) fn DrawTitle(&self, ui: &mut egui::Ui, scale : f32){
+    pub(crate) fn DrawTitle(&self, ui: &mut egui::Ui, scale : f32, ){
         let TitleRect : egui::Rect  = egui::Rect{
             min : egui::Pos2{x:self.frame.rect.min.x+6.0*scale, y:self.frame.rect.min.y+6.0*scale},
             max : egui::Pos2{x:self.frame.rect.max.x-6.0*scale, y:self.frame.rect.min.y+26.0*scale}
@@ -182,7 +186,7 @@ impl State {
         ui.put(TitleRect,TitleText);
 
     }
-    pub(crate) fn DrawContent(&mut self, ui : &mut egui::Ui, scale : f32) {
+    pub(crate) fn DrawContent(&mut self, ui : &mut egui::Ui, scale : f32, ) {
         let ContentRect : egui::Rect  = egui::Rect{
             min : egui::Pos2{x:self.frame.rect.min.x+15.0*scale, y:self.frame.rect.min.y+30.0*scale},
             max : egui::Pos2{x:self.frame.rect.max.x-15.0*scale, y:self.frame.rect.max.y-5.0*scale}};

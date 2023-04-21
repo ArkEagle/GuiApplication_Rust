@@ -158,29 +158,7 @@ impl eframe::App for MyApp {
         if self.in_loading{
             self.loadStateMachine(ctx);
         }
-        //====================Top Panel====================
-        egui::TopBottomPanel::top("CreatePanel").show(ctx, |ui|{
-            ui.horizontal(|ui|{
-                if self.init_connect{
-                    ui.label("Verlassen des Verbindungsmodus ESC");
-                }
-                if ui.button("ZA speichern").clicked(){
-                    self.in_saving = true;
-                }
-                if ui.button("ZA laden").clicked(){
-                    self.in_loading = true;
-                }
-                if ui.button("Generate Square").clicked() {
-                    self.n_state += 1;
-                    let mut state = self.init_state.clone();
-                    self.clicked_new_state = true;
-                }
-                if ui.button("Testbutton Window").clicked(){
-                    ui.label("Aktuell keine Funktion");
-                }
 
-            });
-        });
         //====================Central Panel====================
 
         egui::CentralPanel::default().show(ctx, |ui| {
@@ -203,6 +181,7 @@ impl eframe::App for MyApp {
             let mut delet_vec : Vec<backend::State> = Vec::new();
             let mut clicked_inframe : bool = false;
             let mut clicked_io_b : bool = false;
+            let scrollDelta = ui.input(|i| i.scroll_delta);
             for i_state in self.state_vec.iter_mut(){
                 //===========State Painting===========
                 match &self.selected_state {
@@ -217,11 +196,11 @@ impl eframe::App for MyApp {
                     }
                 };
 
-                i_state.Draw_Box(ui,self.scale);
-                i_state.DrawTitle(ui, self.scale);
-                i_state.DrawContent(ui, self.scale);
+                i_state.Draw_Box(ui,self.scale,scrollDelta);
+                i_state.DrawTitle(ui, self.scale,);
+                i_state.DrawContent(ui, self.scale,);
                 let i_r = ui.allocate_rect(i_state.frame.rect,egui::Sense::drag());
-                self.clickedIO = i_state.Draw_IO(ui, &self.scale);
+                self.clickedIO = i_state.Draw_IO(ui, &self.scale,);
                 //clicks auswerten
                 match &self.clickedIO {
                     None => {;},
@@ -358,6 +337,31 @@ impl eframe::App for MyApp {
                 egui::Color32::from_rgb(255, 128, 128),
                 egui::Stroke::NONE
             )*/
+        });
+
+        //====================Top Panel====================
+
+        egui::TopBottomPanel::top("CreatePanel").exact_height(20.0).show(ctx, |ui|{
+            ui.horizontal(|ui|{
+                if self.init_connect{
+                    ui.label("Verlassen des Verbindungsmodus ESC");
+                }
+                if ui.button("ZA speichern").clicked(){
+                    self.in_saving = true;
+                }
+                if ui.button("ZA laden").clicked(){
+                    self.in_loading = true;
+                }
+                if ui.button("Generate Square").clicked() {
+                    self.n_state += 1;
+                    let mut state = self.init_state.clone();
+                    self.clicked_new_state = true;
+                }
+                if ui.button("Testbutton Window").clicked(){
+                    ui.label("Aktuell keine Funktion");
+                }
+
+            });
         });
 
         //====================Right Sidepanel====================
