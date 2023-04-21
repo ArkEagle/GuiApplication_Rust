@@ -438,7 +438,8 @@ impl MyApp {
             });
 
 
-        });}
+        });
+    }
     fn setOutputCondition(&mut self, ctx :&egui::Context){
         match &mut self.selected_state {
             None => {},
@@ -636,6 +637,30 @@ impl MyApp {
         content.push_str(&*serde_json::to_string(&self.IOPair_vec).unwrap());
         file.write(content.clone().as_ref());
     }
+    fn exportStateMachine(&self){
+        let PathString = "./SystemStorage/";
+        let mut file = fs::File::create((String::from(PathString)+ self.filename.as_str()).as_str()).unwrap();
+        let mut content : String = String::from("");
+        for state in &self.state_vec{
+            //If-Bedingung
+            if state.Name != String::from(""){
+                content.push_str(format!("IF {} THEN \n",state.Name).as_str());
+            }
+            else{
+                content.push_str(format!("IF {} THEN \n",state.ID).as_str());
+            }
+            //Inhalt
+            content.push_str(state.content.as_str());
+            //Transitionen TODO: Reevaluieren der Datenstruktur für die Connections
+            for con in self.IOPair_vec{
+                if con[1].State == state.ID{
+                    content.push_str(format!("IF {} THEN \n",state.O_con_vec[]).as_str())
+
+                }
+            }
+        }
+
+    }
 
     fn loadStateMachine(&mut self, ctx: &egui::Context, ){
         let PathString = "./SystemStorage";
@@ -692,6 +717,7 @@ impl MyApp {
         }
 
     }
+
 }
 
 
