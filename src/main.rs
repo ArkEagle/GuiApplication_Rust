@@ -267,6 +267,20 @@ impl eframe::App for MyApp {
                             self.LineStart =egui::Pos2{x: i_state.frame.rect.max.x-4.0,y: i_state.frame.rect.min.y + (self.IOPair[1].IO_number as f32*10.0+4.0)*self.scale} ;
                         }
                     }
+                    else if (self.IOPair[0].State == self.IOPair[1].State){
+                        self.init_connect = false;
+                        //Reset Connection-Prozess
+                        self.IOPair[0] = backend::clickedIO {
+                            IOType: backend::IoType::Input,
+                            IO_number: 0,
+                            State: 0,
+                        };
+                        self.IOPair[1] = backend::clickedIO {
+                            IOType: backend::IoType::Input,
+                            IO_number: 0,
+                            State: 0,
+                        };
+                    }
                     else if (self.IOPair[0].State != 0 as u8 && self.IOPair[1].State != 0 as u8) {
                         if self.IOPair_vec.contains(&self.IOPair){
 
@@ -637,6 +651,7 @@ impl MyApp {
         content.push_str(&*serde_json::to_string(&self.IOPair_vec).unwrap());
         file.write(content.clone().as_ref());
     }
+    /*
     fn exportStateMachine(&self){
         let PathString = "./SystemStorage/";
         let mut file = fs::File::create((String::from(PathString)+ self.filename.as_str()).as_str()).unwrap();
@@ -654,14 +669,15 @@ impl MyApp {
             //Transitionen TODO: Reevaluieren der Datenstruktur für die Connections
             for con in self.IOPair_vec{
                 if con[1].State == state.ID{
-                    content.push_str(format!("IF {} THEN \n",state.O_con_vec[]).as_str())
+                    content.push_str(format!("IF {} THEN \n",state.O_con_vec[]).as_str());
+
 
                 }
             }
         }
 
     }
-
+*/
     fn loadStateMachine(&mut self, ctx: &egui::Context, ){
         let PathString = "./SystemStorage";
         let mut init_read = false;
