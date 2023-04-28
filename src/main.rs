@@ -256,18 +256,18 @@ impl eframe::App for MyApp {
                 //=========IO-Drawing und Handling von Verbindungen=========
                 //clicks weiterverarbeiten
                 if self.init_connect{
-                    if (self.IOPair[0].State != 0 as u8 && self.IOPair[1].State == 0 as u8){
+                    if self.IOPair[0].State != 0 as u8 && self.IOPair[1].State == 0 as u8 {
                         if i_state.ID == self.IOPair[0].State{
                             self.LineStart =egui::Pos2{x: i_state.frame.rect.min.x+4.0,y: i_state.frame.rect.min.y + (self.IOPair[0].IO_number as f32*10.0+4.0)*self.scale} ;
                         }
                         //let IO_Pos = self.state_vec[State_pos];
                         }
-                    else if (self.IOPair[0].State == 0 as u8 && self.IOPair[1].State != 0 as u8){
+                    else if self.IOPair[0].State == 0 as u8 && self.IOPair[1].State != 0 as u8 {
                         if i_state.ID == self.IOPair[1].State{
                             self.LineStart =egui::Pos2{x: i_state.frame.rect.max.x-4.0,y: i_state.frame.rect.min.y + (self.IOPair[1].IO_number as f32*10.0+4.0)*self.scale} ;
                         }
                     }
-                    else if (self.IOPair[0].State == self.IOPair[1].State){
+                    else if self.IOPair[0].State == self.IOPair[1].State {
                         self.init_connect = false;
                         //Reset Connection-Prozess
                         self.IOPair[0] = backend::clickedIO {
@@ -281,13 +281,16 @@ impl eframe::App for MyApp {
                             State: 0,
                         };
                     }
-                    else if (self.IOPair[0].State != 0 as u8 && self.IOPair[1].State != 0 as u8) {
+                    else if self.IOPair[0].State != 0 as u8 && self.IOPair[1].State != 0 as u8 {
                         if self.IOPair_vec.contains(&self.IOPair){
-
+                            i_state.O.IOVec[self.IOPair[0].IO_number as usize] = 0;
+                            i_state.I.IOVec[self.IOPair[1].IO_number as usize] = 0;
                             self.IOPair_vec.retain(|x| x != &self.IOPair);
                         }
-                        else {
+                        else if i_state.O.IOVec[self.IOPair[0].IO_number as usize] != 0 && i_state.I.IOVec[self.IOPair[0].IO_number as usize] != 0 {
                             self.IOPair_vec.push(self.IOPair.clone());
+                            i_state.O.IOVec[self.IOPair[1].IO_number as usize] = self.IOPair[0].State;
+                            i_state.O.IOVec[self.IOPair[0].IO_number as usize] = self.IOPair[1].State;
                         }
                         
                         self.IOPair[0] = backend::clickedIO {
@@ -651,10 +654,10 @@ impl MyApp {
         content.push_str(&*serde_json::to_string(&self.IOPair_vec).unwrap());
         file.write(content.clone().as_ref());
     }
-    /*
+
     fn exportStateMachine(&self){
         let PathString = "./SystemStorage/";
-        let mut file = fs::File::create((String::from(PathString)+ self.filename.as_str()).as_str()).unwrap();
+        let mut file = fs::File::create((String::from(PathString)+ self.filename.as_str()+"").as_str()).unwrap();
         let mut content : String = String::from("");
         for state in &self.state_vec{
             //If-Bedingung
@@ -667,9 +670,22 @@ impl MyApp {
             //Inhalt
             content.push_str(state.content.as_str());
             //Transitionen TODO: Reevaluieren der Datenstruktur für die Connections
-            for con in self.IOPair_vec{
-                if con[1].State == state.ID{
-                    content.push_str(format!("IF {} THEN \n",state.O_con_vec[]).as_str());
+            for i in 0..state.O.IOVec.len(){
+                if state.O.IOVec[i] != 0{
+                    let to_state = self.state_vec.iter().find(|x| x.ID == state.O.IOVec[i]);
+                    match to_state{
+                        None => {;}
+                        Some(conn_to_state) => {
+                            content.push_str(format!("IF {} THEN \n",state.O_con_vec[i]).as_str());
+                            if conn_to_state.Name != String::from(""){
+                                content.push_str(format!("\t STATE := {}  \n",conn_to_state.Name).as_str());
+                            }
+                            else{
+                                content.push_str(format!("\t STATE := {}  \n",conn_to_state.ID).as_str());
+                            }
+                            content.push_str("END_IF");
+                        }
+                    }
 
 
                 }
@@ -677,7 +693,7 @@ impl MyApp {
         }
 
     }
-*/
+
     fn loadStateMachine(&mut self, ctx: &egui::Context, ){
         let PathString = "./SystemStorage";
         let mut init_read = false;
