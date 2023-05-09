@@ -62,6 +62,7 @@ struct MyApp {
     scale : f32,
     min_scale : f32,
     max_scale : f32,
+    in_export : bool,
 }
 
 impl Default for MyApp {
@@ -137,6 +138,7 @@ impl Default for MyApp {
             scale : 1.0,
             min_scale : 0.3,
             max_scale : 2.0,
+            in_export : false,
         }
     }
 }
@@ -243,7 +245,7 @@ impl eframe::App for MyApp {
                     self.init_connect = false;
                     //Reset Connection-Prozess
                         self.IOPair[0] = backend::clickedIO {
-                            IOType: backend::IoType::Input,
+                            IOType: backend::IoType::Output,
                             IO_number: 0,
                             State: 0,
                         };
@@ -254,7 +256,7 @@ impl eframe::App for MyApp {
                         };
                 }
                 //=========IO-Drawing und Handling von Verbindungen=========
-                //clicks weiterverarbeiten
+                //clicks weiterverarbeiten TODO: Verbindungen können nicht mehr gesetzt werden
                 if self.init_connect{
                     if self.IOPair[0].State != 0 as u8 && self.IOPair[1].State == 0 as u8 {
                         if i_state.ID == self.IOPair[0].State{
@@ -271,7 +273,7 @@ impl eframe::App for MyApp {
                         self.init_connect = false;
                         //Reset Connection-Prozess
                         self.IOPair[0] = backend::clickedIO {
-                            IOType: backend::IoType::Input,
+                            IOType: backend::IoType::Output,
                             IO_number: 0,
                             State: 0,
                         };
@@ -290,11 +292,11 @@ impl eframe::App for MyApp {
                         else if i_state.O.IOVec[self.IOPair[0].IO_number as usize] != 0 && i_state.I.IOVec[self.IOPair[0].IO_number as usize] != 0 {
                             self.IOPair_vec.push(self.IOPair.clone());
                             i_state.O.IOVec[self.IOPair[1].IO_number as usize] = self.IOPair[0].State;
-                            i_state.O.IOVec[self.IOPair[0].IO_number as usize] = self.IOPair[1].State;
+                            i_state.I.IOVec[self.IOPair[0].IO_number as usize] = self.IOPair[1].State;
                         }
                         
                         self.IOPair[0] = backend::clickedIO {
-                            IOType: backend::IoType::Input,
+                            IOType: backend::IoType::Output,
                             IO_number: 0,
                             State: 0,
                         };
@@ -655,20 +657,50 @@ impl MyApp {
         file.write(content.clone().as_ref());
     }
 
-    fn exportStateMachine(&self){
+    fn exportStateMachine(&mut self, ctx: &egui::Context){
+        let mut execute_export = false;
+        let mut abort = false;
+        egui::Window::new("Zustandsautomat laden").collapsible(false).open(&mut self.in_export).show(ctx, |ui| {
+            ui.vertical(|ui|{
+                ui.text_edit_singleline( &mut self.filename);
+                ui.horizontal(|ui|{
+                    if ui.button("Zustandsautomat exportieren").clicked(){
+                        execute_export = true;
+                    }
+                    if ui.button("Exit").clicked(){
+                        abort = true;
+                    }
+                });
+
+            });
+
+        });
+        if execute_export{
+            self.writeSPSCode();
+            self.in_export = false;
+        }
+        if abort{
+            self.in_export = false;
+        }
+    }
+    fn writeSPSCode(&self){
         let PathString = "./SystemStorage/";
-        let mut file = fs::File::create((String::from(PathString)+ self.filename.as_str()+"").as_str()).unwrap();
-        let mut content : String = String::from("");
+        let mut file_sm = fs::File::create((String::from(PathString)+ self.filename.as_str()+"_state_machine").as_str()).unwrap();
+        let mut file_GVL = fs::File::create((String::from(PathString)+ self.filename.as_str()+"_GVL").as_str()).unwrap();
+        let mut content_SM : String = String::from("");
+        let mut content_GVL : String = String::from("VAR_GLOBAL_CONSTANT\n");
         for state in &self.state_vec{
+            //write State machine
             //If-Bedingung
             if state.Name != String::from(""){
-                content.push_str(format!("IF {} THEN \n",state.Name).as_str());
+                content_SM.push_str(format!("IF {} THEN \n",state.Name).as_str());
+                content_GVL.push_str(format!("{} : INT := {};\n",state.Name,state.ID.to_string()).as_str()); //writing the GVL
             }
             else{
-                content.push_str(format!("IF {} THEN \n",state.ID).as_str());
+                content_SM.push_str(format!("IF {} THEN \n",state.ID).as_str());
             }
             //Inhalt
-            content.push_str(state.content.as_str());
+            content_SM.push_str(state.content.as_str());
             //Transitionen TODO: Reevaluieren der Datenstruktur für die Connections
             for i in 0..state.O.IOVec.len(){
                 if state.O.IOVec[i] != 0{
@@ -676,21 +708,27 @@ impl MyApp {
                     match to_state{
                         None => {;}
                         Some(conn_to_state) => {
-                            content.push_str(format!("IF {} THEN \n",state.O_con_vec[i]).as_str());
+                            content_SM.push_str(format!("IF {} THEN \n",state.O_con_vec[i]).as_str());
                             if conn_to_state.Name != String::from(""){
-                                content.push_str(format!("\t STATE := {}  \n",conn_to_state.Name).as_str());
+                                content_SM.push_str(format!("\t STATE := {}  \n",conn_to_state.Name).as_str());
                             }
                             else{
-                                content.push_str(format!("\t STATE := {}  \n",conn_to_state.ID).as_str());
+                                content_SM.push_str(format!("\t STATE := {}  \n",conn_to_state.ID).as_str());
                             }
-                            content.push_str("END_IF");
+                            content_SM.push_str("END_IF");
                         }
                     }
 
 
+
                 }
+
             }
         }
+        content_GVL.push_str("VAR_END");
+        //write files
+        file_sm.write(content_SM.clone().as_ref());
+        file_GVL.write(content_GVL.clone().as_ref());
 
     }
 
